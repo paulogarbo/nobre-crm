@@ -457,6 +457,22 @@ describe('comportamentos transversais', () => {
     expect(res.headers['x-ratelimit-limit']).toBe('300');
   });
 
+  it('x-request-id é sempre gerado pelo servidor (o enviado pelo cliente é ignorado)', async () => {
+    const res = await chamar(ctx.app, 'GET', '/health', { headers: { 'x-request-id': 'forjado-pelo-cliente' } });
+    expect(res.headers['x-request-id']).not.toBe('forjado-pelo-cliente');
+    expect(res.headers['x-request-id']).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    const preflight = await ctx.app.inject({
+      method: 'OPTIONS',
+      url: '/oportunidades',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type,x-vendedor-id',
+      },
+    });
+    expect(preflight.headers['access-control-allow-headers']).toBe('content-type, x-vendedor-id');
+  });
+
   it('I-41 erro inesperado → 500 genérico, sem stack nem mensagem interna', async () => {
     const res = await get('/__teste/erro');
     expect(res.status).toBe(500);

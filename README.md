@@ -502,7 +502,7 @@ Domínio: cada regra no limiar e um dia antes (F-02…F-10), precedência (F-11,
 - **Validação de entrada** com zod em corpo, query e parâmetros de todas as rotas; datas validadas de verdade (31/02 é recusado); corpos estritos (campo desconhecido → 400); limites de tamanho de texto e de payload.
 - **SQL injection:** Prisma com consultas parametrizadas (a busca usa `contains` + `mode: insensitive`).
 - **Saída declarada:** respostas serializadas por schema; a API só devolve os campos previstos.
-- **Erros sem vazamento:** 500 genérico, sem stack nem mensagem do banco; o detalhe vai para o log com `x-request-id`.
+- **Erros sem vazamento:** 500 genérico, sem stack nem mensagem do banco; o detalhe vai para o log com `x-request-id`, gerado sempre pelo servidor (o valor enviado pelo cliente é ignorado, para não permitir forjar a correlação).
 - **Headers e perímetro:** Helmet, CORS restrito a `CORS_ORIGIN`, rate limit de 300 req/min por IP.
 - **Logs:** o Fastify não registra corpo de requisição, então dados de contato não vão para o log.
 - **Containers:** Alpine, usuário não root, só dependências de produção na imagem da API.

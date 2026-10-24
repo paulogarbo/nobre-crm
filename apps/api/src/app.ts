@@ -46,8 +46,10 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
   const app = Fastify({
     // O Fastify não loga corpo de requisição: dados de contato (e-mail, telefone) não vão para o log.
     logger: { level: env.LOG_LEVEL },
+    // O id de correlação é sempre gerado aqui: aceitar o do cliente permitiria forjar ou colidir
+    // ids nos logs. Ele volta na resposta (header x-request-id).
     genReqId: () => randomUUID(),
-    requestIdHeader: 'x-request-id',
+    requestIdHeader: false,
     bodyLimit: 256 * 1024,
   });
 
@@ -62,7 +64,7 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
   await app.register(cors, {
     origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
     methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'x-vendedor-id', 'x-request-id'],
+    allowedHeaders: ['content-type', 'x-vendedor-id'],
     exposedHeaders: ['x-request-id'],
   });
   await app.register(rateLimit, {
