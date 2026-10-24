@@ -506,7 +506,7 @@ Domínio: cada regra no limiar e um dia antes (F-02…F-10), precedência (F-11,
 - **Headers e perímetro:** Helmet, CORS restrito a `CORS_ORIGIN`, rate limit de 300 req/min por IP.
 - **Logs:** o Fastify não registra corpo de requisição, então dados de contato não vão para o log.
 - **Containers:** Alpine, usuário não root, só dependências de produção na imagem da API.
-- **Dependências:** `pnpm audit` sem vulnerabilidades conhecidas (com overrides para `postcss` e `esbuild` transitivos).
+- **Dependências:** `pnpm audit` sem vulnerabilidades conhecidas (com overrides para `postcss` e `esbuild` transitivos), e o CI falha se aparecer alguma alta ou crítica.
 - **Identidade:** o header `x-vendedor-id` é um **stand-in**: identifica, não autentica. Está isolado no plugin [`identidade.ts`](apps/api/src/plugins/identidade.ts), cuja única responsabilidade é preencher `request.vendedor`. Não implementei um login com senha falso: parece segurança e não é.
 
 ### Como protegeria a API em produção
@@ -517,7 +517,7 @@ Domínio: cada regra no limiar e um dia antes (F-02…F-10), precedência (F-11,
 - **Segredos:** AWS Secrets Manager / GCP Secret Manager / Vault injetando em runtime, com rotação automática da senha do banco e das chaves do JWT (JWKS com `kid`).
 - **Banco:** usuário da aplicação com privilégio mínimo (DML, sem DDL; migrations com outro usuário no deploy); backups diários com PITR; criptografia em repouso; para LGPD, criptografia em nível de coluna ou tokenização de `contatoEmail`, `contatoTelefone` e `cnpj`, e política de retenção.
 - **Auditoria:** o histórico de transições já é auditoria do funil; em produção, estender para toda escrita (quem, quando, o quê, antes/depois, `requestId`, IP) em armazenamento append-only.
-- **Hardening:** zod em todas as bordas, `bodyLimit`, timeouts, CSP ajustada ao front, Dependabot/Renovate + `pnpm audit` no CI bloqueando high/critical, imagens escaneadas (Trivy), containers read-only.
+- **Hardening:** zod em todas as bordas, `bodyLimit`, timeouts, CSP ajustada ao front, Dependabot/Renovate somado ao `pnpm audit` que o CI já roda, imagens escaneadas (Trivy), containers read-only.
 - **Observabilidade:** logs estruturados centralizados sem PII, métricas (p95, 4xx/5xx, 429), tracing (OpenTelemetry), alertas de anomalia (picos de 401/403 ou de perdas).
 - **Multi-marca:** se o CRM for compartilhado entre Nobre Brindes, Flores Nobre e Coroa de Flores, `marcaId` como dimensão de autorização (tenant lógico), checada no mesmo ponto único.
 
