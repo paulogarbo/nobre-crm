@@ -10,6 +10,9 @@ import type { Env } from './config/env';
 import { criarRelogio, type Relogio } from './lib/clock';
 import type { PrismaClient } from './lib/prisma';
 import { rotasEtapas } from './modules/etapas/etapas.routes';
+import { rotasOportunidades } from './modules/oportunidades/oportunidades.routes';
+import { OportunidadesService, type AoAlterarOportunidade } from './modules/oportunidades/oportunidades.service';
+import { TransicoesService } from './modules/transicoes/transicoes.service';
 import { rotasVendedores } from './modules/vendedores/vendedores.routes';
 import { registrarTratamentoDeErros } from './plugins/error-handler';
 import { criarIdentidade } from './plugins/identidade';
@@ -25,6 +28,8 @@ export interface OpcoesApp {
 
 export interface Servicos {
   relogio: Relogio;
+  oportunidades: OportunidadesService;
+  transicoes: TransicoesService;
 }
 
 declare module 'fastify' {
@@ -67,8 +72,14 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
     }),
   });
 
-  criarIdentidade(app, prisma);
-  app.decorate('servicos', { relogio });
+  const identidade = criarIdentidade(app, prisma);
+
+  // Gatilho pós-alteração: recalcular o follow-up da oportunidade (ligado junto com o motor de follow-up).
+  const aoAlterar: AoAlterarOportunidade = async () => {};
+
+  const oportunidades = new OportunidadesService(prisma, relogio, aoAlterar);
+  const transicoes = new TransicoesService(prisma, relogio, aoAlterar);
+  app.decorate('servicos', { relogio, oportunidades, transicoes });
 
   app.withTypeProvider<ZodTypeProvider>().get(
     '/health',
@@ -84,6 +95,7 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
 
   await app.register(rotasEtapas, { relogio });
   await app.register(rotasVendedores, { prisma });
+  await app.register(rotasOportunidades, { identidade, oportunidades, transicoes });
 
   if (env.NODE_ENV === 'test') {
     // Só em teste: prova que erro inesperado vira 500 genérico, sem stack.
