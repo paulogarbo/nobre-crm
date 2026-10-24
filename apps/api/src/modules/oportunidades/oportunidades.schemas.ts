@@ -40,7 +40,10 @@ export const corpoCriar = z.strictObject({ empresa, ...camposOportunidade });
 export type CorpoCriar = z.infer<typeof corpoCriar>;
 
 /** PATCH: qualquer subconjunto dos campos do POST; `null` limpa o campo; `itens` substitui a lista. */
-export const corpoEditar = z.strictObject({ empresa: empresa.optional(), ...camposOportunidade });
+export const corpoEditar = z
+  .strictObject({ empresa: empresa.optional(), ...camposOportunidade })
+  // PATCH vazio não altera nada; recusar evita um 200 enganoso (e um recálculo à toa).
+  .refine((corpo) => Object.keys(corpo).length > 0, 'Informe ao menos um campo para alterar.');
 export type CorpoEditar = z.infer<typeof corpoEditar>;
 
 export const corpoTransicao = z.strictObject({

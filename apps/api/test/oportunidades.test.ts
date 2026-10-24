@@ -299,6 +299,14 @@ describe('criação e edição', () => {
     expect(res.body.observacoes).toBe('Entrega confirmada.');
   });
 
+  it('PATCH sem nenhum campo → 400 (inclusive em oportunidade final)', async () => {
+    for (const codigo of ['OPP-2001', 'OPP-2006']) {
+      const res = await chamar(ctx.app, 'PATCH', `/oportunidades/${codigo}`, { body: {}, vendedorId: v.Ana });
+      expect(res.status, codigo).toBe(400);
+      expect(res.body).toMatchObject({ code: 'VALIDACAO', message: expect.stringContaining('ao menos um campo') });
+    }
+  });
+
   it('I-20 PATCH itens substitui a lista inteira', async () => {
     const res = await chamar(ctx.app, 'PATCH', '/oportunidades/OPP-2001', {
       body: {
