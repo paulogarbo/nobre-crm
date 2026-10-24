@@ -18,7 +18,7 @@ RUN pnpm --filter api exec prisma generate && pnpm --filter api build
 
 # Só dependências de produção (inclui prisma CLI e tsx, usados por migrate deploy e seed no start)
 FROM base AS runtime
-ENV NODE_ENV=production \n    PRISMA_HIDE_UPDATE_MESSAGE=1
+ENV NODE_ENV=production PRISMA_HIDE_UPDATE_MESSAGE=1
 RUN pnpm install --frozen-lockfile --prod --filter api... && pnpm store prune
 COPY packages/domain packages/domain
 COPY apps/api apps/api
