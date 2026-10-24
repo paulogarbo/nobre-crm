@@ -125,7 +125,7 @@ apps/api test:       Tests  64 passed (64)
 apps/web test:       Tests  6 passed (6)
 ```
 
-Os IDs dos casos (`D-03`, `I-22`, `F-13`…) estão no texto dos `it(...)`, para localizar rápido a regra testada. Cobertura do domínio: `pnpm --filter domain test:coverage` (≈98% das linhas). `pnpm lint` e `pnpm typecheck` rodam em todos os pacotes; há um workflow de CI em `.github/workflows/ci.yml` que executa lint, typecheck, testes (com serviço Postgres) e build.
+Os IDs dos casos (`D-03`, `I-22`, `F-13`…) estão no texto dos `it(...)`, para localizar rápido a regra testada. Cobertura do domínio: `pnpm --filter domain test:coverage` (≈98% das linhas). `pnpm lint` e `pnpm typecheck` rodam em todos os pacotes; há um workflow de CI em `.github/workflows/ci.yml` que executa `pnpm audit --audit-level high`, lint, typecheck, testes (com serviço Postgres) e build.
 
 ---
 
@@ -569,7 +569,7 @@ Fora do escopo desta versão (de propósito):
 - Reabertura de oportunidade final (seria uma nova oportunidade com `reabertaDeId`).
 - Versionamento da API (`/v1`).
 - Multi-tenant (as três marcas do grupo no mesmo CRM): hoje há uma única base; o caminho está na seção 10 (multi-marca).
-- Deploy e entrega contínua: há CI (lint, typecheck, testes e build), mas não há pipeline de deploy nem ambiente publicado.
+- Deploy e entrega contínua: há CI (lint, typecheck, testes, build e `pnpm audit`), mas não há pipeline de deploy nem ambiente publicado.
 
 Próximos passos, em ordem: autenticação OIDC e RBAC; limiares de atenção/follow-up configuráveis pelo gestor; entidade Empresa; paginação com score materializado; reabertura; notificações reais (push/WhatsApp interno); métricas de funil (conversão e tempo por etapa, motivos de perda e de retorno, que o histórico já registra).
 
