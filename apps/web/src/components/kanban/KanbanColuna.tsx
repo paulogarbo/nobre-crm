@@ -68,7 +68,7 @@ export function KanbanColuna({ etapa, rotulo, itens, hoje, destino, colapsavel, 
       ref={setNodeRef}
       aria-label={`${rotulo}: ${itens.length} oportunidade(s)`}
       className={cn(
-        'flex w-[280px] min-w-[280px] flex-col rounded-xl border-2 border-transparent bg-slate-200/60 transition',
+        'flex min-w-[248px] max-w-[360px] flex-1 basis-0 flex-col rounded-xl border-2 border-transparent bg-slate-200/60 transition',
         valido && 'border-dashed border-sky-500 bg-sky-50/60',
         valido && isOver && 'bg-sky-100/80',
         invalido && 'cursor-not-allowed opacity-40',

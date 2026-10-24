@@ -54,7 +54,7 @@ export function CarregandoBoard() {
   return (
     <div className="flex gap-4 overflow-hidden" aria-busy="true" aria-label="Carregando oportunidades">
       {Array.from({ length: 6 }, (_, c) => (
-        <div key={c} className="flex w-[280px] min-w-[280px] flex-col gap-3 rounded-xl bg-slate-200/50 p-3">
+        <div key={c} className="flex min-w-[248px] flex-1 basis-0 flex-col gap-3 rounded-xl bg-slate-200/50 p-3">
           <Skeleton className="h-5 w-32" />
           {Array.from({ length: 3 }, (_, i) => (
             <div key={i} className="space-y-2 rounded-lg bg-white p-3 shadow-sm">
