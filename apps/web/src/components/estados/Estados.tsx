@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/primitivos';
 import { mensagemDeErro } from '@/lib/api/client';
+import { cn } from '@/lib/utils';
 
 function Caixa({ icone, titulo, children }: { icone: ReactNode; titulo: string; children?: ReactNode }) {
   return (
@@ -45,6 +46,18 @@ export function SemResultados({ onLimpar }: { onLimpar: () => void }) {
       <Button variant="outline" size="xs" onClick={onLimpar}>
         Limpar filtros
       </Button>
+    </div>
+  );
+}
+
+/**
+ * Envolve um resultado que continua na tela enquanto a nova consulta (troca de filtro) não chega:
+ * esmaece e marca `aria-busy`, para não parecer que o resultado antigo já é o do filtro novo.
+ */
+export function AreaAtualizando({ atualizando, children }: { atualizando: boolean; children: ReactNode }) {
+  return (
+    <div aria-busy={atualizando} className={cn('transition-opacity', atualizando && 'pointer-events-none opacity-60')}>
+      {children}
     </div>
   );
 }

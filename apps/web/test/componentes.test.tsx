@@ -3,7 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BadgesAtencao } from '@/components/atencao/BadgeAtencao';
 import { ResumoAtencao } from '@/components/atencao/ResumoAtencao';
-import { SemResultados, Vazio } from '@/components/estados/Estados';
+import { AreaAtualizando, SemResultados, Vazio } from '@/components/estados/Estados';
 import { errosDoServidorPorCampo, lerValor } from '@/components/oportunidade/FormOportunidade';
 import { TooltipProvider } from '@/components/ui/menu';
 import type { OportunidadeResumo } from '@/lib/api/tipos';
@@ -91,6 +91,26 @@ describe('estados', () => {
     expect(screen.getByText('Nenhuma oportunidade cadastrada.')).toBeTruthy();
     screen.getByRole('button', { name: 'Limpar filtros' }).click();
     expect(limpar).toHaveBeenCalled();
+  });
+});
+
+describe('troca de filtro', () => {
+  it('enquanto a nova consulta não chega, o resultado anterior fica esmaecido e marcado como ocupado', () => {
+    const { container, rerender } = render(
+      <AreaAtualizando atualizando>
+        <p>resultado anterior</p>
+      </AreaAtualizando>,
+    );
+    const area = container.firstElementChild!;
+    expect(area.getAttribute('aria-busy')).toBe('true');
+    expect(area.className).toContain('opacity-60');
+    rerender(
+      <AreaAtualizando atualizando={false}>
+        <p>resultado novo</p>
+      </AreaAtualizando>,
+    );
+    expect(area.getAttribute('aria-busy')).toBe('false');
+    expect(area.className).not.toContain('opacity-60');
   });
 });
 

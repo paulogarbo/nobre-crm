@@ -88,7 +88,14 @@ export default function PaginaLista() {
         </p>
       </div>
       {consulta.data.total === 0 && <SemResultados onLimpar={limpar} />}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      {/* troca de filtro: o resultado anterior fica esmaecido até o novo chegar */}
+      <div
+        aria-busy={consulta.isPlaceholderData}
+        className={cn(
+          'overflow-x-auto rounded-xl border border-slate-200 bg-white transition-opacity',
+          consulta.isPlaceholderData && 'pointer-events-none opacity-60',
+        )}
+      >
         <table className="w-full min-w-[1100px] text-sm">
           <thead className="bg-slate-50 text-left text-xs text-slate-600">
             <tr>

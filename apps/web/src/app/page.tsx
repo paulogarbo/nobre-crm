@@ -2,7 +2,7 @@
 
 import { Plus } from 'lucide-react';
 import { ResumoAtencao } from '@/components/atencao/ResumoAtencao';
-import { CarregandoBoard, Erro, SemResultados, Vazio } from '@/components/estados/Estados';
+import { AreaAtualizando, CarregandoBoard, Erro, SemResultados, Vazio } from '@/components/estados/Estados';
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { useAcoesOportunidade } from '@/components/oportunidade/AcoesOportunidade';
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,9 @@ export default function PaginaKanban() {
       ) : (
         <ResumoAtencao itens={itens} filtroAtivo={atencao} onAlternarFiltro={(ativo) => definir({ atencao: ativo })} />
       )}
-      <KanbanBoard itens={itens} hoje={etapas.data.hoje} />
+      <AreaAtualizando atualizando={oportunidades.isPlaceholderData}>
+        <KanbanBoard itens={itens} hoje={etapas.data.hoje} />
+      </AreaAtualizando>
     </div>
   );
 }
