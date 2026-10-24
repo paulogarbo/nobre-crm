@@ -30,3 +30,6 @@ Thumbs.db
 
 # código gerado pelo Prisma (prisma generate)
 apps/api/src/generated/
+
+# configuração local de ferramentas
+.claude/
