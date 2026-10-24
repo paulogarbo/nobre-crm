@@ -2,7 +2,9 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { executarSeed } from '../prisma/seed-runner';
+import type { PrismaClient } from '../src/lib/prisma';
 import { iniciarJobFollowUps } from '../src/modules/follow-ups/follow-ups.job';
+import { FollowUpsService } from '../src/modules/follow-ups/follow-ups.service';
 import { chamar, criarContexto, resetarComSeed, type Contexto, type Vendedores } from './helpers';
 
 let ctx: Contexto;
@@ -224,6 +226,53 @@ describe('motor de follow-up via API', () => {
         },
       }),
     ).rejects.toMatchObject({ code: 'P2002' });
+  });
+
+  it('corrida job × requisição: recálculos simultâneos deixam uma só ação aberta', async () => {
+    const op = await ctx.prisma.oportunidade.findUniqueOrThrow({ where: { codigo: 'OPP-2003' } });
+    const servico = ctx.app.servicos.followUps;
+    const resultados = await Promise.all([1, 2, 3, 4].map(() => servico.recalcularPara(op.id)));
+    expect(resultados.reduce((n, r) => n + r.criados, 0)).toBe(1);
+    expect(resultados.reduce((n, r) => n + r.mantidos, 0)).toBe(3);
+    expect(await abertosDe('OPP-2003')).toHaveLength(1);
+  });
+
+  it('corrida job × requisição: insert concorrente entre a leitura e a escrita é refeito (P2002)', async () => {
+    const op = await ctx.prisma.oportunidade.findUniqueOrThrow({ where: { codigo: 'OPP-2003' } });
+    let injetado = false;
+    // Na primeira escrita, outra conexão (o "job") grava a mesma ação antes: a escrita esbarra no índice único.
+    const vincular = <T extends object>(alvo: T, nome: PropertyKey) => {
+      const valor = Reflect.get(alvo, nome) as unknown;
+      return typeof valor === 'function' ? valor.bind(alvo) : valor;
+    };
+    const followUpComCorrida = (delegado: PrismaClient['followUp']) =>
+      new Proxy(delegado, {
+        get: (alvo, nome) =>
+          nome === 'create' && !injetado
+            ? async (args: Parameters<PrismaClient['followUp']['create']>[0]) => {
+                injetado = true;
+                await ctx.prisma.followUp.create({ data: args.data });
+                return alvo.create(args);
+              }
+            : vincular(alvo, nome),
+      });
+    const prismaComCorrida = new Proxy(ctx.prisma, {
+      get: (alvo, nome) =>
+        nome === '$transaction'
+          ? (fn: (tx: unknown) => Promise<unknown>) =>
+              alvo.$transaction((tx) =>
+                fn(new Proxy(tx, { get: (t, n) => (n === 'followUp' ? followUpComCorrida(t.followUp) : vincular(t, n)) })),
+              )
+          : vincular(alvo, nome),
+    }) as PrismaClient;
+    const servico = new FollowUpsService(prismaComCorrida, ctx.app.servicos.relogio, () => ctx.app.servicos.oportunidades);
+
+    const r = await servico.recalcularPara(op.id);
+
+    expect(injetado).toBe(true);
+    expect(r).toEqual({ criados: 0, resolvidos: 0, substituidos: 0, mantidos: 1 });
+    const abertos = await abertosDe('OPP-2003');
+    expect(abertos.map((f) => `${f.tipo}:${f.prioridade}`)).toEqual(['CONFIRMAR_PRAZO_EVENTO:CRITICA']);
   });
 
   it('I-21/F4 transição para Fechamento resolve a ação aberta e nunca cria outra', async () => {
