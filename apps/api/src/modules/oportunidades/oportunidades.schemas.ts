@@ -71,7 +71,7 @@ export const queryListar = z.object({
     .string()
     .transform((v) => v.split(',').map((e) => e.trim()).filter(Boolean))
     .refine((lista) => lista.every(ehEtapa), 'etapa inválida')
-    .transform((lista) => lista as Etapa[])
+    .transform((lista) => lista.filter(ehEtapa))
     .optional(),
   vendedorId: z.uuid('vendedorId inválido').optional(),
   atencao: booleanoTexto.optional(),

@@ -4,14 +4,16 @@ import { listarCampos } from './erros';
 import { camposFaltantesParaApresentar } from './maquina-de-estados';
 import type { OportunidadeDominio } from './tipos';
 
-export enum TipoSinal {
-  EVENTO_PASSOU = 'EVENTO_PASSOU',
-  EVENTO_PROXIMO = 'EVENTO_PROXIMO',
-  PROPOSTA_VENCIDA = 'PROPOSTA_VENCIDA',
-  PROPOSTA_VENCE_EM_BREVE = 'PROPOSTA_VENCE_EM_BREVE',
-  SEM_CONTATO = 'SEM_CONTATO',
-  DADOS_INCOMPLETOS = 'DADOS_INCOMPLETOS',
-}
+/** Tipos de sinal de atenção. Objeto `as const` + união: os mesmos literais dos enums do Prisma, sem conversão. */
+export const TipoSinal = {
+  EVENTO_PASSOU: 'EVENTO_PASSOU',
+  EVENTO_PROXIMO: 'EVENTO_PROXIMO',
+  PROPOSTA_VENCIDA: 'PROPOSTA_VENCIDA',
+  PROPOSTA_VENCE_EM_BREVE: 'PROPOSTA_VENCE_EM_BREVE',
+  SEM_CONTATO: 'SEM_CONTATO',
+  DADOS_INCOMPLETOS: 'DADOS_INCOMPLETOS',
+} as const;
+export type TipoSinal = (typeof TipoSinal)[keyof typeof TipoSinal];
 
 export type Severidade = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAIXA';
 

@@ -5,7 +5,6 @@ import {
   pesoPrioridade,
   proximaAcao,
   type DataCivil,
-  type Etapa,
   type Prioridade,
 } from '@nobre/domain';
 import { Prisma, type FollowUp } from '../../generated/prisma/client';
@@ -67,7 +66,7 @@ export class FollowUpsService {
   ) {}
 
   toDTO(f: FollowUpComOportunidade, hoje: DataCivil): FollowUpDTO {
-    const etapa = f.oportunidade.etapa as Etapa;
+    const etapa = f.oportunidade.etapa;
     const venceEm = deDataBanco(f.venceEm);
     return {
       ...followUpDaOportunidadeDTO(f),
@@ -189,7 +188,7 @@ export class FollowUpsService {
     const itens = registros
       .sort(
         (a, b) =>
-          pesoPrioridade(a.prioridade as Prioridade) - pesoPrioridade(b.prioridade as Prioridade) ||
+          pesoPrioridade(a.prioridade) - pesoPrioridade(b.prioridade) ||
           a.venceEm.getTime() - b.venceEm.getTime() ||
           Number(b.oportunidade.valorEstimado ?? 0) - Number(a.oportunidade.valorEstimado ?? 0),
       )

@@ -183,7 +183,7 @@ export class OportunidadesService {
     if (!atual) throw erros.oportunidadeNaoEncontrada();
 
     const campos = (Object.keys(corpo) as Array<keyof CorpoEditar>).filter((k) => corpo[k] !== undefined);
-    if (ehFinal(atual.etapa as Etapa) && campos.some((k) => k !== 'observacoes')) {
+    if (ehFinal(atual.etapa) && campos.some((k) => k !== 'observacoes')) {
       throw erros.oportunidadeFinalizada();
     }
     exigirContatoNaoFuturo(corpo.ultimoContato, this.relogio.hoje(), 'ultimoContato');
@@ -237,7 +237,7 @@ export class OportunidadesService {
       select: { id: true, etapa: true, ultimoContato: true, observacoes: true },
     });
     if (!atual) throw erros.oportunidadeNaoEncontrada();
-    if (ehFinal(atual.etapa as Etapa)) throw erros.oportunidadeFinalizada();
+    if (ehFinal(atual.etapa)) throw erros.oportunidadeFinalizada();
 
     const data = corpo?.data ?? hoje;
     exigirContatoNaoFuturo(data, hoje, 'data');

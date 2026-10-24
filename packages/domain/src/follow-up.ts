@@ -3,15 +3,17 @@ import { diasEntre, formatarDataBR, type DataCivil } from './datas';
 import { ETAPAS_COM_PROPOSTA, Etapa, ehFinal } from './etapas';
 import type { OportunidadeDominio } from './tipos';
 
-export enum TipoFollowUp {
-  PRIMEIRO_CONTATO_SLA = 'PRIMEIRO_CONTATO_SLA',
-  CONFIRMAR_PRAZO_EVENTO = 'CONFIRMAR_PRAZO_EVENTO',
-  REVISAR_PROPOSTA_VENCIDA = 'REVISAR_PROPOSTA_VENCIDA',
-  RENEGOCIAR_VALIDADE = 'RENEGOCIAR_VALIDADE',
-  CONFIRMAR_RECEBIMENTO_PROPOSTA = 'CONFIRMAR_RECEBIMENTO_PROPOSTA',
-  RETOMAR_NEGOCIACAO = 'RETOMAR_NEGOCIACAO',
-  CONFIRMAR_FECHAMENTO = 'CONFIRMAR_FECHAMENTO',
-}
+/** Tipos de próxima ação (follow-up). Objeto `as const` + união: os mesmos literais dos enums do Prisma, sem conversão. */
+export const TipoFollowUp = {
+  PRIMEIRO_CONTATO_SLA: 'PRIMEIRO_CONTATO_SLA',
+  CONFIRMAR_PRAZO_EVENTO: 'CONFIRMAR_PRAZO_EVENTO',
+  REVISAR_PROPOSTA_VENCIDA: 'REVISAR_PROPOSTA_VENCIDA',
+  RENEGOCIAR_VALIDADE: 'RENEGOCIAR_VALIDADE',
+  CONFIRMAR_RECEBIMENTO_PROPOSTA: 'CONFIRMAR_RECEBIMENTO_PROPOSTA',
+  RETOMAR_NEGOCIACAO: 'RETOMAR_NEGOCIACAO',
+  CONFIRMAR_FECHAMENTO: 'CONFIRMAR_FECHAMENTO',
+} as const;
+export type TipoFollowUp = (typeof TipoFollowUp)[keyof typeof TipoFollowUp];
 
 export type Prioridade = 'CRITICA' | 'ALTA' | 'MEDIA';
 

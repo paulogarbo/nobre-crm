@@ -1,11 +1,13 @@
-export enum Etapa {
-  PRIMEIRO_CONTATO = 'PRIMEIRO_CONTATO',
-  APRESENTACAO_ORCAMENTO = 'APRESENTACAO_ORCAMENTO',
-  FOLLOW_UP = 'FOLLOW_UP',
-  FORECAST = 'FORECAST',
-  FECHAMENTO = 'FECHAMENTO',
-  PERDIDA = 'PERDIDA',
-}
+/** Etapas do funil. Objeto `as const` + união: os mesmos literais dos enums do Prisma, sem conversão. */
+export const Etapa = {
+  PRIMEIRO_CONTATO: 'PRIMEIRO_CONTATO',
+  APRESENTACAO_ORCAMENTO: 'APRESENTACAO_ORCAMENTO',
+  FOLLOW_UP: 'FOLLOW_UP',
+  FORECAST: 'FORECAST',
+  FECHAMENTO: 'FECHAMENTO',
+  PERDIDA: 'PERDIDA',
+} as const;
+export type Etapa = (typeof Etapa)[keyof typeof Etapa];
 
 /** Ordem linear do funil. PERDIDA fica fora: pode ser aplicada a partir de qualquer etapa não final. */
 export const ORDEM_FUNIL: readonly Etapa[] = [

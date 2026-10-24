@@ -5,10 +5,7 @@ import {
   hojeDataCivil,
   transicoesPermitidas,
   type DataCivil,
-  type Etapa,
   type OportunidadeDominio,
-  type Prioridade,
-  type TipoFollowUp,
 } from '@nobre/domain';
 import type { FollowUp, ItemBrinde, Oportunidade, Prisma } from '../../generated/prisma/client';
 import { deDataBanco, deDataBancoOuNull } from '../../lib/datas-banco';
@@ -27,7 +24,7 @@ export function paraDominio(op: Oportunidade & { itens: ItemBrinde[] }): Oportun
   return {
     id: op.id,
     codigo: op.codigo,
-    etapa: op.etapa as Etapa,
+    etapa: op.etapa,
     valorEstimado: numeroOuNull(op.valorEstimado),
     itens: op.itens.map((i) => ({
       descricao: i.descricao,
@@ -46,8 +43,8 @@ export function paraDominio(op: Oportunidade & { itens: ItemBrinde[] }): Oportun
 export function followUpDaOportunidadeDTO(f: FollowUp): FollowUpDaOportunidadeDTO {
   return {
     id: f.id,
-    tipo: f.tipo as TipoFollowUp,
-    prioridade: f.prioridade as Prioridade,
+    tipo: f.tipo,
+    prioridade: f.prioridade,
     titulo: f.titulo,
     descricao: f.descricao,
     venceEm: deDataBanco(f.venceEm),
@@ -87,8 +84,8 @@ export function paraResumo(op: OportunidadeComResumo | OportunidadeComDetalhe, h
     proximaAcao: aberto
       ? {
           id: aberto.id,
-          tipo: aberto.tipo as TipoFollowUp,
-          prioridade: aberto.prioridade as Prioridade,
+          tipo: aberto.tipo,
+          prioridade: aberto.prioridade,
           titulo: aberto.titulo,
           venceEm: deDataBanco(aberto.venceEm),
         }
@@ -102,8 +99,8 @@ export function paraResumo(op: OportunidadeComResumo | OportunidadeComDetalhe, h
 export function historicoDTO(t: OportunidadeComDetalhe['transicoes'][number]): HistoricoDTO {
   return {
     id: t.id,
-    deEtapa: (t.deEtapa as Etapa | null) ?? null,
-    paraEtapa: t.paraEtapa as Etapa,
+    deEtapa: t.deEtapa,
+    paraEtapa: t.paraEtapa,
     motivo: t.motivo,
     vendedor: { id: t.vendedor.id, nome: t.vendedor.nome },
     createdAt: t.createdAt.toISOString(),

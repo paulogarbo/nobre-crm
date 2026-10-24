@@ -31,7 +31,7 @@ export class TransicoesService {
     });
     if (!op) throw erros.oportunidadeNaoEncontrada();
 
-    const de = op.etapa as Etapa;
+    const de = op.etapa;
     const resultado = validarTransicao(paraDominio(op), para, motivo, this.relogio.hoje());
     if (!resultado.ok) throw erroDeDominio(resultado);
 
