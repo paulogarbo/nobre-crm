@@ -1,4 +1,5 @@
 import { ehDataCivilValida } from '@nobre/domain';
+import cron from 'node-cron';
 import { z } from 'zod';
 
 const vazioParaUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
@@ -15,7 +16,11 @@ const esquemaEnv = z.object({
       .refine(ehDataCivilValida, 'REFERENCE_DATE precisa estar no formato YYYY-MM-DD e ser uma data real')
       .optional(),
   ),
-  FOLLOWUP_CRON: z.string().default('0 * * * *'),
+  // Validada aqui para falhar no boot, antes do listen, e não depois com a API já no ar.
+  FOLLOWUP_CRON: z
+    .string()
+    .default('0 * * * *')
+    .refine((expressao) => cron.validate(expressao), 'FOLLOWUP_CRON precisa ser uma expressão cron válida (ex.: 0 * * * *)'),
   FOLLOWUP_WEBHOOK_URL: z.preprocess(vazioParaUndefined, z.url('FOLLOWUP_WEBHOOK_URL inválida').optional()),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
