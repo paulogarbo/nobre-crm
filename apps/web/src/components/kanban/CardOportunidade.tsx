@@ -42,6 +42,8 @@ export function CardOportunidade({ op, hoje, overlay = false }: Props) {
       aria-label={`${op.codigo}, ${op.empresa}${severidade ? `, atenção ${ESTILO_SEVERIDADE[severidade].rotulo.toLowerCase()}` : ''}. Enter abre o detalhe; espaço pega para mover.`}
       onClick={() => abrirDetalhe(op.id)}
       onKeyDown={(e) => {
+        // Eventos do menu "⋯" (em portal) borbulham pela árvore React até aqui: só o card reage.
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter') {
           // sem o preventDefault, o Enter "vaza" para o botão que recebe foco no painel aberto
           e.preventDefault();
@@ -85,7 +87,7 @@ export function CardOportunidade({ op, hoje, overlay = false }: Props) {
                   <MoreHorizontal />
                 </Button>
               </MenuTrigger>
-              <MenuContent onClick={(e) => e.stopPropagation()}>
+              <MenuContent onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                 {!final && (
                   <>
                     <MenuSub>

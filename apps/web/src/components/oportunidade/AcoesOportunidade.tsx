@@ -23,7 +23,8 @@ interface AcoesContexto {
   abrirFormulario(modo: ModoFormulario): void;
 }
 
-const Contexto = createContext<AcoesContexto | null>(null);
+/** Exportado para testes de componente injetarem ações falsas. */
+export const Contexto = createContext<AcoesContexto | null>(null);
 
 export function useAcoesOportunidade(): AcoesContexto {
   const ctx = useContext(Contexto);
