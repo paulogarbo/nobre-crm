@@ -1,6 +1,6 @@
 'use client';
 
-import { SEVERIDADES, TODAS_AS_ETAPAS, compararCodigo, ehFinal } from '@nobre/domain';
+import { LIMIARES, SEVERIDADES, TODAS_AS_ETAPAS, compararCodigo, ehFinal } from '@nobre/domain';
 import { ArrowDown, ArrowUp, ArrowUpDown, MoreHorizontal, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BadgeEtapa, BadgeSeveridade, IconeSeveridade } from '@/components/atencao/BadgeAtencao';
@@ -147,7 +147,7 @@ export default function PaginaLista() {
                   <td className="px-3 py-2 text-right">{moeda(op.valorEstimado)}</td>
                   <td className="px-3 py-2">
                     {data(op.ultimoContato)}
-                    <span className={cn('block text-xs text-slate-500', (op.diasSemContato ?? 0) >= 8 && !final && 'text-red-600')}>
+                    <span className={cn('block text-xs text-slate-500', (op.diasSemContato ?? 0) >= LIMIARES.SEM_CONTATO_DIAS && !final && 'text-red-600')}>
                       {haDias(op.diasSemContato)}
                     </span>
                   </td>

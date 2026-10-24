@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { Etapa, TipoFollowUp, calcularSinais, proximaAcao, somarDias, type OportunidadeDominio } from '../src';
+import {
+  Etapa,
+  LIMIARES,
+  LIMIARES_FOLLOWUP,
+  TipoFollowUp,
+  calcularSinais,
+  proximaAcao,
+  somarDias,
+  type OportunidadeDominio,
+} from '../src';
 import { HOJE, SEED, opNeutra } from './fixtures';
 
 const T = TipoFollowUp;
@@ -164,5 +173,18 @@ describe('motor de próxima ação (follow-up)', () => {
       }
     }
     expect(verificados).toBeGreaterThan(1000);
+  });
+
+  it('limiares compartilhados com os sinais vêm de uma única fonte (LIMIARES)', () => {
+    expect(LIMIARES_FOLLOWUP).toMatchObject({
+      EVENTO_CRITICO_DIAS: LIMIARES.EVENTO_CRITICO_DIAS,
+      EVENTO_ALERTA_DIAS: LIMIARES.EVENTO_ALERTA_DIAS,
+      PROPOSTA_VENCENDO_DIAS: LIMIARES.PROPOSTA_VENCENDO_DIAS,
+      LEAD_SLA_DIAS: LIMIARES.LEAD_SEM_CONTATO_DIAS,
+      SEM_CONTATO_DIAS: LIMIARES.SEM_CONTATO_DIAS,
+    });
+    // os intermediários antecipam a ação: ficam entre o SLA do lead e o limiar de "sem contato"
+    expect(LIMIARES_FOLLOWUP.CONFIRMAR_RECEBIMENTO_DIAS).toBeLessThan(LIMIARES.SEM_CONTATO_DIAS);
+    expect(LIMIARES_FOLLOWUP.RETOMADA_PREVENTIVA_DIAS).toBeLessThan(LIMIARES.SEM_CONTATO_DIAS);
   });
 });

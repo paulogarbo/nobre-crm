@@ -1,3 +1,4 @@
+import { LIMIARES } from './atencao';
 import { diasEntre, formatarDataBR, type DataCivil } from './datas';
 import { ETAPAS_COM_PROPOSTA, Etapa, ehFinal } from './etapas';
 import type { OportunidadeDominio } from './tipos';
@@ -34,17 +35,18 @@ export interface ProximaAcao {
 }
 
 /**
- * Limiares do motor (em dias). Compartilham os valores dos sinais de atenção; os limiares
- * intermediários (confirmar recebimento, retomada preventiva) antecipam a ação antes de virar sinal.
+ * Limiares do motor (em dias). Os que coincidem com os sinais de atenção vêm de `LIMIARES` (uma
+ * única fonte); os intermediários (confirmar recebimento, retomada preventiva) antecipam a ação
+ * antes de virar sinal e só existem aqui.
  */
 export const LIMIARES_FOLLOWUP = {
-  EVENTO_CRITICO_DIAS: 3,
-  EVENTO_ALERTA_DIAS: 7,
-  PROPOSTA_VENCENDO_DIAS: 3,
-  LEAD_SLA_DIAS: 2,
+  EVENTO_CRITICO_DIAS: LIMIARES.EVENTO_CRITICO_DIAS,
+  EVENTO_ALERTA_DIAS: LIMIARES.EVENTO_ALERTA_DIAS,
+  PROPOSTA_VENCENDO_DIAS: LIMIARES.PROPOSTA_VENCENDO_DIAS,
+  LEAD_SLA_DIAS: LIMIARES.LEAD_SEM_CONTATO_DIAS,
   CONFIRMAR_RECEBIMENTO_DIAS: 4,
   RETOMADA_PREVENTIVA_DIAS: 6,
-  SEM_CONTATO_DIAS: 8,
+  SEM_CONTATO_DIAS: LIMIARES.SEM_CONTATO_DIAS,
 } as const;
 
 /** Ordem numérica da prioridade (menor = mais urgente), para ordenar no banco e na UI. */
