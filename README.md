@@ -181,6 +181,7 @@ apps/
       lib/             relógio (REFERENCE_DATE), erros, conversão de datas, Prisma
       plugins/         identidade (x-vendedor-id) e tratamento de erros
       modules/         etapas, vendedores, oportunidades, transicoes, follow-ups
+                       (routes → service → repository; regras sempre no domínio)
     test/              integração com Postgres real
   web/
     src/app/           rotas: / (Kanban), /oportunidades, /oportunidades/[id], /hoje
@@ -190,6 +191,8 @@ apps/
 packages/
   domain/src/          etapas, maquina-de-estados, atencao, follow-up, datas, erros
 ```
+
+Dentro de cada módulo da API, as camadas têm uma responsabilidade só: **routes** (HTTP, schema zod, identidade), **service** (orquestração: chama o domínio, abre a transação, dispara o recálculo após o commit) e **repository** (toda consulta e escrita do Prisma, recebendo o cliente ou a transação). Nenhum service fala com o Prisma direto, e nenhum repository decide regra.
 
 ### Fluxo de uma transição
 

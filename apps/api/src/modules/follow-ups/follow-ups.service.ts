@@ -1,19 +1,13 @@
-import {
-  ETAPAS_FINAIS,
-  ROTULOS,
-  diasEntre,
-  pesoPrioridade,
-  proximaAcao,
-  type DataCivil,
-  type Prioridade,
-} from '@nobre/domain';
+import { ROTULOS, diasEntre, pesoPrioridade, proximaAcao, type DataCivil, type Prioridade } from '@nobre/domain';
 import { Prisma, type FollowUp } from '../../generated/prisma/client';
 import type { Relogio } from '../../lib/clock';
-import { deDataBanco, paraDataBanco } from '../../lib/datas-banco';
+import { deDataBanco } from '../../lib/datas-banco';
 import { erros } from '../../lib/errors';
 import type { PrismaClient } from '../../lib/prisma';
 import { followUpDaOportunidadeDTO, paraDominio } from '../oportunidades/oportunidades.mapper';
 import type { AoAlterarOportunidade, Executor, OportunidadesService } from '../oportunidades/oportunidades.service';
+import { vendedoresRepository } from '../vendedores/vendedores.repository';
+import { followUpsRepository as repo, type FollowUpComOportunidade } from './follow-ups.repository';
 import type { FollowUpDTO, StatusFollowUp } from './follow-ups.schemas';
 
 export interface ResultadoRecalculo {
@@ -42,11 +36,6 @@ function somar(a: ResultadoRecalculo, b: ResultadoRecalculo): ResultadoRecalculo
     mantidos: a.mantidos + b.mantidos,
   };
 }
-
-const includeOportunidade = {
-  oportunidade: { include: { vendedor: { select: { id: true, nome: true } } } },
-} as const satisfies Prisma.FollowUpInclude;
-type FollowUpComOportunidade = Prisma.FollowUpGetPayload<{ include: typeof includeOportunidade }>;
 
 /**
  * Motor de follow-up: para cada oportunidade não final, materializa UMA "próxima ação" (a mais
@@ -100,10 +89,7 @@ export class FollowUpsService {
     const hoje = this.relogio.hoje();
     const agora = this.relogio.agora();
     return this.prisma.$transaction(async (tx) => {
-      const op = await tx.oportunidade.findUnique({
-        where: { id: oportunidadeId },
-        include: { itens: true, vendedor: { select: { nome: true } }, followUps: { where: { status: 'ABERTO' } } },
-      });
+      const op = await repo.buscarParaRecalculo(tx, oportunidadeId);
       const r = zero();
       if (!op) return r;
 
@@ -112,7 +98,7 @@ export class FollowUpsService {
 
       if (!acao) {
         if (aberto) {
-          await tx.followUp.update({ where: { id: aberto.id }, data: { status: 'RESOLVIDO', encerradoEm: agora } });
+          await repo.encerrar(tx, aberto.id, 'RESOLVIDO', agora);
           r.resolvidos++;
         }
         return r;
@@ -121,33 +107,19 @@ export class FollowUpsService {
       if (aberto && aberto.tipo === acao.tipo) {
         // Mesmo motivo: atualiza textos/prioridade e mantém o vencimento original (preserva o "atrasado").
         if (aberto.prioridade !== acao.prioridade || aberto.titulo !== acao.titulo || aberto.descricao !== acao.descricao) {
-          await tx.followUp.update({
-            where: { id: aberto.id },
-            data: { prioridade: acao.prioridade, titulo: acao.titulo, descricao: acao.descricao },
-          });
+          await repo.atualizarTextos(tx, aberto.id, acao);
         }
         r.mantidos++;
         return r;
       }
 
       if (aberto) {
-        await tx.followUp.update({ where: { id: aberto.id }, data: { status: 'SUBSTITUIDO', encerradoEm: agora } });
+        await repo.encerrar(tx, aberto.id, 'SUBSTITUIDO', agora);
         r.substituidos++;
       } else {
         r.criados++;
       }
-      await tx.followUp.create({
-        data: {
-          oportunidadeId: op.id,
-          tipo: acao.tipo,
-          prioridade: acao.prioridade,
-          titulo: acao.titulo,
-          descricao: acao.descricao,
-          venceEm: paraDataBanco(hoje),
-          status: 'ABERTO',
-          criadoEm: agora,
-        },
-      });
+      await repo.criarAberto(tx, op.id, acao, hoje, agora);
       novas.push({
         codigo: op.codigo,
         empresa: op.empresa,
@@ -161,29 +133,17 @@ export class FollowUpsService {
 
   /** Mesma função do job: todas as não finais + finais que ainda tenham ação aberta (para resolvê-las). */
   async recalcularTodos(): Promise<ResultadoRecalculo & { hoje: DataCivil; novas: AcaoNova[] }> {
-    const alvos = await this.prisma.oportunidade.findMany({
-      where: { OR: [{ etapa: { notIn: [...ETAPAS_FINAIS] } }, { followUps: { some: { status: 'ABERTO' } } }] },
-      select: { id: true },
-      orderBy: { codigo: 'asc' },
-    });
+    const alvos = await repo.idsParaRecalculo(this.prisma);
     const novas: AcaoNova[] = [];
     let total = zero();
-    for (const { id } of alvos) total = somar(total, await this.recalcularPara(id, novas));
+    for (const id of alvos) total = somar(total, await this.recalcularPara(id, novas));
     return { hoje: this.relogio.hoje(), ...total, novas };
   }
 
   async listar(vendedorId: string, status: StatusFollowUp, ate?: DataCivil) {
-    const vendedor = await this.prisma.vendedor.findUnique({ where: { id: vendedorId }, select: { id: true } });
-    if (!vendedor) throw erros.vendedorNaoEncontrado();
+    if (!(await vendedoresRepository.existe(this.prisma, vendedorId))) throw erros.vendedorNaoEncontrado();
     const hoje = this.relogio.hoje();
-    const registros = await this.prisma.followUp.findMany({
-      where: {
-        status,
-        oportunidade: { vendedorId },
-        ...(ate ? { venceEm: { lte: paraDataBanco(ate) } } : {}),
-      },
-      include: includeOportunidade,
-    });
+    const registros = await repo.listarDoVendedor(this.prisma, vendedorId, status, ate);
     // Prioridade (CRITICA, ALTA, MEDIA), vencimento mais antigo, maior valor.
     const itens = registros
       .sort(
@@ -207,14 +167,10 @@ export class FollowUpsService {
   ) {
     const oportunidades = this.oportunidades();
     const oportunidadeId = await this.prisma.$transaction(async (tx) => {
-      const f = await tx.followUp.findUnique({ where: { id } });
+      const f = await repo.buscar(tx, id);
       if (!f) throw erros.followUpNaoEncontrado();
       // Encerramento condicional: duas conclusões simultâneas não passam as duas.
-      const { count } = await tx.followUp.updateMany({
-        where: { id, status: 'ABERTO' },
-        data: { status: 'CONCLUIDO', encerradoEm: this.relogio.agora() },
-      });
-      if (count === 0) throw erros.followUpJaEncerrado();
+      if ((await repo.concluirSeAberto(tx, id, this.relogio.agora())) === 0) throw erros.followUpJaEncerrado();
       if (corpo.registrarContato) {
         await oportunidades.aplicarContato(tx, f.oportunidadeId, { observacao: corpo.observacao });
       } else if (corpo.observacao) {
@@ -225,7 +181,7 @@ export class FollowUpsService {
 
     // A conclusão já foi gravada: falha no recálculo vai para o log (o job corrige) e não vira 500.
     await this.aoAlterar(oportunidadeId);
-    const concluido = await this.prisma.followUp.findUniqueOrThrow({ where: { id }, include: includeOportunidade });
+    const concluido = await repo.buscarComOportunidade(this.prisma, id);
     return {
       followUp: this.toDTO(concluido, this.relogio.hoje()),
       oportunidade: await oportunidades.detalhe(oportunidadeId),

@@ -1,10 +1,10 @@
-import { Etapa, validarTransicao } from '@nobre/domain';
+import { validarTransicao, type Etapa } from '@nobre/domain';
 import type { Relogio } from '../../lib/clock';
 import { erroDeDominio, erros } from '../../lib/errors';
 import type { PrismaClient } from '../../lib/prisma';
 import { paraDominio } from '../oportunidades/oportunidades.mapper';
-import { ondeIdOuCodigo } from '../oportunidades/oportunidades.repository';
 import type { AoAlterarOportunidade, Executor } from '../oportunidades/oportunidades.service';
+import { transicoesRepository as repo } from './transicoes.repository';
 
 /**
  * Mudança de etapa. A regra vem inteira do domínio (`validarTransicao`); aqui só há orquestração:
@@ -25,10 +25,7 @@ export class TransicoesService {
     executor: Executor,
     tentativa = 0,
   ): Promise<string> {
-    const op = await this.prisma.oportunidade.findUnique({
-      where: ondeIdOuCodigo(idOuCodigo),
-      include: { itens: true },
-    });
+    const op = await repo.buscarOportunidade(this.prisma, idOuCodigo);
     if (!op) throw erros.oportunidadeNaoEncontrada();
 
     const de = op.etapa;
@@ -36,19 +33,18 @@ export class TransicoesService {
     if (!resultado.ok) throw erroDeDominio(resultado);
 
     const motivoLimpo = motivo?.trim() || null;
-    const aplicou = await this.prisma.$transaction(async (tx) => {
-      // Concorrência otimista: só grava se a oportunidade não mudou desde a validação (etapa e
-      // updatedAt). Um PATCH no meio (ex.: apagou a validade) força revalidar contra o estado novo.
-      const { count } = await tx.oportunidade.updateMany({
-        where: { id: op.id, etapa: de, updatedAt: op.updatedAt },
-        data: { etapa: para, ...(para === Etapa.PERDIDA ? { motivoPerda: motivoLimpo } : {}) },
-      });
-      if (count === 0) return false;
-      await tx.transicaoEtapa.create({
-        data: { oportunidadeId: op.id, deEtapa: de, paraEtapa: para, motivo: motivoLimpo, vendedorId: executor.id },
-      });
-      return true;
-    });
+    // Concorrência otimista: só grava se a oportunidade não mudou desde a validação (etapa e
+    // updatedAt). Um PATCH no meio (ex.: apagou a validade) força revalidar contra o estado novo.
+    const aplicou = await this.prisma.$transaction((tx) =>
+      repo.aplicar(tx, {
+        oportunidadeId: op.id,
+        de,
+        lidaEm: op.updatedAt,
+        para,
+        motivo: motivoLimpo,
+        executorId: executor.id,
+      }),
+    );
 
     if (!aplicou) {
       // Outra requisição mudou a oportunidade entre a leitura e a escrita: revalida contra o estado novo.

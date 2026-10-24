@@ -1,4 +1,4 @@
-import { ETAPAS_FINAIS, type Etapa } from '@nobre/domain';
+import { ETAPAS_FINAIS, Etapa } from '@nobre/domain';
 import type { Prisma } from '../../generated/prisma/client';
 import type { PrismaClient } from '../../lib/prisma';
 
@@ -42,6 +42,23 @@ export function ondeIdOuCodigo(idOuCodigo: string): Prisma.OportunidadeWhereUniq
 
 type Cliente = PrismaClient | Prisma.TransactionClient;
 
+export interface NovoItem {
+  descricao: string;
+  quantidade: number;
+  valorUnitario?: number | null;
+}
+
+function dadosItens(oportunidadeId: string, itens: NovoItem[], base: Date) {
+  // createdAt crescente preserva a ordem informada pelo vendedor.
+  return itens.map((item, i) => ({
+    oportunidadeId,
+    descricao: item.descricao,
+    quantidade: item.quantidade,
+    valorUnitario: item.valorUnitario ?? null,
+    createdAt: new Date(base.getTime() + i),
+  }));
+}
+
 export const oportunidadesRepository = {
   listar(prisma: Cliente, f: FiltrosBanco) {
     const and: Prisma.OportunidadeWhereInput[] = [];
@@ -63,6 +80,60 @@ export const oportunidadesRepository = {
 
   buscarDetalhe(prisma: Cliente, idOuCodigo: string) {
     return prisma.oportunidade.findUnique({ where: ondeIdOuCodigo(idOuCodigo), include: includeDetalhe });
+  },
+
+  /** Cria a oportunidade em Primeiro Contato com os itens e a linha "criada" do histórico. Rodar em transação. */
+  async inserir(
+    tx: Prisma.TransactionClient,
+    dados: Omit<Prisma.OportunidadeUncheckedCreateInput, 'etapa' | 'createdAt'>,
+    itens: NovoItem[],
+    executorId: string,
+    agora: Date,
+  ) {
+    const op = await tx.oportunidade.create({ data: { ...dados, etapa: Etapa.PRIMEIRO_CONTATO, createdAt: agora } });
+    if (itens.length) await tx.itemBrinde.createMany({ data: dadosItens(op.id, itens, agora) });
+    await tx.transicaoEtapa.create({
+      data: { oportunidadeId: op.id, deEtapa: null, paraEtapa: Etapa.PRIMEIRO_CONTATO, vendedorId: executorId, createdAt: agora },
+    });
+    return op;
+  },
+
+  buscarEtapa(prisma: Cliente, idOuCodigo: string) {
+    return prisma.oportunidade.findUnique({ where: ondeIdOuCodigo(idOuCodigo), select: { id: true, etapa: true } });
+  },
+
+  /** Atualiza os campos e, se `itens` vier, substitui a lista inteira. Rodar em transação. */
+  async atualizar(
+    tx: Prisma.TransactionClient,
+    id: string,
+    data: Prisma.OportunidadeUncheckedUpdateInput,
+    itens: NovoItem[] | undefined,
+    agora: Date,
+  ) {
+    await tx.oportunidade.update({ where: { id }, data });
+    if (itens !== undefined) {
+      await tx.itemBrinde.deleteMany({ where: { oportunidadeId: id } });
+      if (itens.length) await tx.itemBrinde.createMany({ data: dadosItens(id, itens, agora) });
+    }
+  },
+
+  buscarParaContato(prisma: Cliente, idOuCodigo: string) {
+    return prisma.oportunidade.findUnique({
+      where: ondeIdOuCodigo(idOuCodigo),
+      select: { id: true, etapa: true, ultimoContato: true, observacoes: true },
+    });
+  },
+
+  gravarContato(prisma: Cliente, id: string, ultimoContato: Date, observacoes: string | null) {
+    return prisma.oportunidade.update({ where: { id }, data: { ultimoContato, observacoes } });
+  },
+
+  buscarObservacoes(prisma: Cliente, id: string) {
+    return prisma.oportunidade.findUnique({ where: { id }, select: { observacoes: true } });
+  },
+
+  gravarObservacoes(prisma: Cliente, id: string, observacoes: string) {
+    return prisma.oportunidade.update({ where: { id }, data: { observacoes } });
   },
 
   /** Maior número de código existente (OPP-2007 → 2007), ou null se não houver nenhum. */

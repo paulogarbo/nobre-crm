@@ -1,5 +1,4 @@
 import {
-  Etapa,
   atingeSeveridade,
   compararCodigo,
   compararPrioridade,
@@ -14,7 +13,8 @@ import { paraDataBanco, paraDataBancoOuNull } from '../../lib/datas-banco';
 import { erros } from '../../lib/errors';
 import type { PrismaClient } from '../../lib/prisma';
 import { paraDetalhe, paraResumo, historicoDTO } from './oportunidades.mapper';
-import { oportunidadesRepository as repo, ondeIdOuCodigo } from './oportunidades.repository';
+import { vendedoresRepository } from '../vendedores/vendedores.repository';
+import { oportunidadesRepository as repo } from './oportunidades.repository';
 import type {
   CorpoCriar,
   CorpoEditar,
@@ -34,19 +34,6 @@ export type AoAlterarOportunidade = (oportunidadeId: string) => Promise<void>;
 
 const CODIGO_MINIMO = 2001;
 const TENTATIVAS_CODIGO = 3;
-
-type ItemEntrada = NonNullable<CorpoCriar['itens']>[number];
-
-function dadosItens(oportunidadeId: string, itens: ItemEntrada[], base: Date) {
-  // createdAt crescente preserva a ordem informada pelo vendedor.
-  return itens.map((item, i) => ({
-    oportunidadeId,
-    descricao: item.descricao,
-    quantidade: item.quantidade,
-    valorUnitario: item.valorUnitario ?? null,
-    createdAt: new Date(base.getTime() + i),
-  }));
-}
 
 function exigirContatoNaoFuturo(data: DataCivil | null | undefined, hoje: DataCivil, campo: string) {
   if (data && diasEntre(hoje, data) > 0) {
@@ -117,8 +104,7 @@ export class OportunidadesService {
   }
 
   private async exigirVendedor(id: string) {
-    const existe = await this.prisma.vendedor.findUnique({ where: { id }, select: { id: true } });
-    if (!existe) throw erros.vendedorNaoEncontrado();
+    if (!(await vendedoresRepository.existe(this.prisma, id))) throw erros.vendedorNaoEncontrado();
   }
 
   async criar(corpo: CorpoCriar, executor: Executor): Promise<OportunidadeDetalheDTO> {
@@ -133,12 +119,13 @@ export class OportunidadesService {
           const maior = await repo.maiorNumeroDeCodigo(tx);
           const codigo = `OPP-${Math.max(CODIGO_MINIMO, (maior ?? 0) + 1)}`;
           const agora = this.relogio.agora();
-          const op = await tx.oportunidade.create({
-            data: {
+          // A criação também é um evento do histórico: "criada em Primeiro Contato".
+          const op = await repo.inserir(
+            tx,
+            {
               codigo,
               empresa: corpo.empresa,
               vendedorId,
-              etapa: Etapa.PRIMEIRO_CONTATO,
               cnpj: corpo.cnpj ?? null,
               contatoNome: corpo.contatoNome ?? null,
               contatoEmail: corpo.contatoEmail ?? null,
@@ -148,20 +135,11 @@ export class OportunidadesService {
               validadeProposta: paraDataBancoOuNull(corpo.validadeProposta),
               eventoCliente: paraDataBancoOuNull(corpo.eventoCliente),
               observacoes: corpo.observacoes ?? null,
-              createdAt: agora,
             },
-          });
-          if (corpo.itens?.length) await tx.itemBrinde.createMany({ data: dadosItens(op.id, corpo.itens, agora) });
-          // A criação também é um evento do histórico: "criada em Primeiro Contato".
-          await tx.transicaoEtapa.create({
-            data: {
-              oportunidadeId: op.id,
-              deEtapa: null,
-              paraEtapa: Etapa.PRIMEIRO_CONTATO,
-              vendedorId: executor.id,
-              createdAt: agora,
-            },
-          });
+            corpo.itens ?? [],
+            executor.id,
+            agora,
+          );
           return op.id;
         });
         await this.aoAlterar(id);
@@ -176,10 +154,7 @@ export class OportunidadesService {
   }
 
   async editar(idOuCodigo: string, corpo: CorpoEditar): Promise<OportunidadeDetalheDTO> {
-    const atual = await this.prisma.oportunidade.findUnique({
-      where: ondeIdOuCodigo(idOuCodigo),
-      select: { id: true, etapa: true },
-    });
+    const atual = await repo.buscarEtapa(this.prisma, idOuCodigo);
     if (!atual) throw erros.oportunidadeNaoEncontrada();
 
     const campos = (Object.keys(corpo) as Array<keyof CorpoEditar>).filter((k) => corpo[k] !== undefined);
@@ -202,15 +177,8 @@ export class OportunidadesService {
     if (corpo.eventoCliente !== undefined) data.eventoCliente = paraDataBancoOuNull(corpo.eventoCliente);
     if (corpo.observacoes !== undefined) data.observacoes = corpo.observacoes;
 
-    const itens = corpo.itens;
-    await this.prisma.$transaction(async (tx) => {
-      await tx.oportunidade.update({ where: { id: atual.id }, data });
-      if (itens !== undefined) {
-        // v1: a lista enviada substitui a anterior inteira (simples e previsível).
-        await tx.itemBrinde.deleteMany({ where: { oportunidadeId: atual.id } });
-        if (itens.length) await tx.itemBrinde.createMany({ data: dadosItens(atual.id, itens, this.relogio.agora()) });
-      }
-    });
+    // v1: `itens`, se enviado, substitui a lista anterior inteira (simples e previsível).
+    await this.prisma.$transaction((tx) => repo.atualizar(tx, atual.id, data, corpo.itens, this.relogio.agora()));
     await this.aoAlterar(atual.id);
     return this.detalhe(atual.id);
   }
@@ -232,10 +200,7 @@ export class OportunidadesService {
     corpo: { data?: DataCivil; observacao?: string } | undefined,
   ): Promise<string> {
     const hoje = this.relogio.hoje();
-    const atual = await cliente.oportunidade.findUnique({
-      where: ondeIdOuCodigo(idOuCodigo),
-      select: { id: true, etapa: true, ultimoContato: true, observacoes: true },
-    });
+    const atual = await repo.buscarParaContato(cliente, idOuCodigo);
     if (!atual) throw erros.oportunidadeNaoEncontrada();
     if (ehFinal(atual.etapa)) throw erros.oportunidadeFinalizada();
 
@@ -245,17 +210,14 @@ export class OportunidadesService {
     const ultimoContato = atual.ultimoContato && atual.ultimoContato > novo ? atual.ultimoContato : novo;
 
     const observacoes = corpo?.observacao ? anexar(atual.observacoes, data, corpo.observacao) : atual.observacoes;
-    await cliente.oportunidade.update({ where: { id: atual.id }, data: { ultimoContato, observacoes } });
+    await repo.gravarContato(cliente, atual.id, ultimoContato, observacoes);
     return atual.id;
   }
 
   /** Anexa uma observação datada sem mexer no contato. */
   async anotar(cliente: PrismaClient | Prisma.TransactionClient, id: string, observacao: string): Promise<void> {
-    const atual = await cliente.oportunidade.findUnique({ where: { id }, select: { observacoes: true } });
+    const atual = await repo.buscarObservacoes(cliente, id);
     if (!atual) throw erros.oportunidadeNaoEncontrada();
-    await cliente.oportunidade.update({
-      where: { id },
-      data: { observacoes: anexar(atual.observacoes, this.relogio.hoje(), observacao) },
-    });
+    await repo.gravarObservacoes(cliente, id, anexar(atual.observacoes, this.relogio.hoje(), observacao));
   }
 }
