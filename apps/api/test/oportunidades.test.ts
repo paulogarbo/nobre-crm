@@ -272,6 +272,7 @@ describe('criação e edição', () => {
     });
     expect(res.status).toBe(409);
     expect(res.body.code).toBe('OPORTUNIDADE_FINALIZADA');
+    expect((await get('/oportunidades/OPP-2006')).body.empresa).toBe('Escola Saber');
   });
 
   it('I-19 PATCH só de observações em final → 200', async () => {
@@ -382,6 +383,13 @@ describe('transições de etapa', () => {
     const res = await transicionar('OPP-2001', v.Ana, { para: 'APRESENTACAO_ORCAMENTO' });
     expect(res.status).toBe(200);
     expect(res.body.etapa).toBe('APRESENTACAO_ORCAMENTO');
+    expect(res.body.historico).toHaveLength(2);
+    expect(res.body.historico.at(-1)).toMatchObject({
+      deEtapa: 'PRIMEIRO_CONTATO',
+      paraEtapa: 'APRESENTACAO_ORCAMENTO',
+      motivo: null,
+      vendedor: { nome: 'Ana' },
+    });
   });
 
   it('I-27 OPP-2004 com proposta vencida → Forecast: 422 PROPOSTA_VENCIDA', async () => {
