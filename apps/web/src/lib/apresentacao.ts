@@ -73,7 +73,7 @@ export function rotuloCurtoSinal(sinal: SinalDTO, op: OportunidadeResumo, hoje: 
       return n === 0 ? 'Vence hoje' : `Vence em ${n}d`;
     }
     case TipoSinal.SEM_CONTATO:
-      if (op.etapa === Etapa.PRIMEIRO_CONTATO) return 'SLA do lead';
+      if (op.etapa === Etapa.PRIMEIRO_CONTATO) return 'Lead sem contato';
       return op.diasSemContato === null ? 'Sem contato' : `${op.diasSemContato}d sem contato`;
     case TipoSinal.DADOS_INCOMPLETOS:
       return 'Dados incompletos';

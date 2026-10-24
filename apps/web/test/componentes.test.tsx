@@ -79,6 +79,13 @@ describe('BadgesAtencao', () => {
     expect(screen.getByText('+1')).toBeTruthy();
   });
 
+  it('rótulo curto de lead parado diz o que é, não a sigla', () => {
+    const lead = op({ etapa: Etapa.PRIMEIRO_CONTATO, diasSemContato: 3 });
+    const sinal = { tipo: TipoSinal.SEM_CONTATO, severidade: 'ALTA' as const, mensagem: 'Lead sem primeiro contato há 3 dias (SLA).' };
+    expect(rotuloCurtoSinal(sinal, lead, '2026-10-15')).toBe('Lead sem contato');
+    expect(rotuloCurtoSinal(sinal, op({ diasSemContato: 9 }), '2026-10-15')).toBe('9d sem contato');
+  });
+
   it('rótulo curto do evento conta os dias a partir de hoje', () => {
     expect(rotuloCurtoSinal(critica.atencao.sinais[0]!, critica, '2026-10-15')).toBe('Evento em 3d');
   });
