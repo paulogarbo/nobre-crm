@@ -36,6 +36,24 @@ export function escaparLike(texto: string): string {
   return texto.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
+/**
+ * Ids das oportunidades cujo código, empresa ou item contém o termo, sem diferenciar maiúsculas nem
+ * acentos ("clinica" encontra "Clínica"). Consulta parametrizada (o termo nunca é interpolado no SQL);
+ * os curingas do LIKE digitados pelo vendedor são escapados e valem como texto.
+ */
+async function idsDaBusca(prisma: Cliente, termo: string): Promise<string[]> {
+  const padrao = `%${escaparLike(termo)}%`;
+  const linhas = await prisma.$queryRaw<Array<{ id: string }>>`
+    SELECT o.id FROM oportunidades o
+    WHERE unaccent(o.codigo) ILIKE unaccent(${padrao})
+       OR unaccent(o.empresa) ILIKE unaccent(${padrao})
+       OR EXISTS (
+         SELECT 1 FROM itens_brinde i
+         WHERE i.oportunidade_id = o.id AND unaccent(i.descricao) ILIKE unaccent(${padrao})
+       )`;
+  return linhas.map((l) => l.id);
+}
+
 /** Aceita uuid ou código legível (OPP-2001). */
 export function ondeIdOuCodigo(idOuCodigo: string): Prisma.OportunidadeWhereUniqueInput {
   return CODIGO.test(idOuCodigo) ? { codigo: idOuCodigo.toUpperCase() } : { id: idOuCodigo };
@@ -61,14 +79,9 @@ function dadosItens(oportunidadeId: string, itens: NovoItem[], base: Date) {
 }
 
 export const oportunidadesRepository = {
-  listar(prisma: Cliente, f: FiltrosBanco) {
+  async listar(prisma: Cliente, f: FiltrosBanco) {
     const and: Prisma.OportunidadeWhereInput[] = [];
-    if (f.q) {
-      // Parametrizado pelo Prisma (ILIKE). O Prisma não escapa os curingas do LIKE: "%" e "_" digitados
-      // pelo vendedor são literais. Sem `unaccent`: "clinica" não encontra "Clínica" (limitação declarada).
-      const contem = { contains: escaparLike(f.q), mode: 'insensitive' } as const;
-      and.push({ OR: [{ codigo: contem }, { empresa: contem }, { itens: { some: { descricao: contem } } }] });
-    }
+    if (f.q) and.push({ id: { in: await idsDaBusca(prisma, f.q) } });
     if (f.etapas?.length) and.push({ etapa: { in: f.etapas } });
     if (f.vendedorId) and.push({ vendedorId: f.vendedorId });
     if (!f.incluirFinais) and.push({ etapa: { notIn: [...ETAPAS_FINAIS] } });

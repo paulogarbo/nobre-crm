@@ -107,8 +107,9 @@ describe('listagem e busca', () => {
       const res = await get(`/oportunidades?q=${encodeURIComponent(q)}`);
       expect(codigos(res), q).toEqual(['OPP-2003']);
     }
-    // sem `unaccent`: busca sem acento não encontra (limitação declarada no README)
-    expect(codigos(await get('/oportunidades?q=clinica'))).toEqual([]);
+    // com `unaccent`: busca sem acento encontra (antes era limitação declarada; ver README)
+    expect(codigos(await get('/oportunidades?q=clinica'))).toEqual(['OPP-2003']);
+    expect(codigos(await get('/oportunidades?q=AGENCIA'))).toEqual(['OPP-2004']);
   });
 
   it('busca trata %, _ e \\ como texto literal, não como curinga do LIKE', async () => {

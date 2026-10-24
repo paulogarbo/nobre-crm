@@ -312,7 +312,7 @@ Demais códigos: `400 VALIDACAO` (corpo, query ou parâmetros inválidos, com `d
 | `GET /health` | status, `hoje`, `referenciaFixa`, versão |
 | `GET /etapas` | etapas, rótulos e transições estruturais (matriz acima) |
 | `GET /vendedores` | vendedores por nome |
-| `GET /oportunidades` | lista com sinais e próxima ação. Query: `q` (código, empresa ou item), `etapa` (uma ou várias separadas por vírgula), `vendedorId`, `atencao=true`, `severidade=CRITICA\|ALTA\|MEDIA\|BAIXA` (mínima), `incluirFinais`, `ordem=prioridade\|valor\|ultimoContato\|codigo` |
+| `GET /oportunidades` | lista com sinais e próxima ação. Query: `q` (código, empresa ou item, sem diferenciar maiúsculas nem acentos), `etapa` (uma ou várias separadas por vírgula), `vendedorId`, `atencao=true`, `severidade=CRITICA\|ALTA\|MEDIA\|BAIXA` (mínima), `incluirFinais`, `ordem=prioridade\|valor\|ultimoContato\|codigo` |
 | `GET /oportunidades/:id` | detalhe por uuid **ou** código (`OPP-2003`), com histórico e follow-ups |
 | `GET /oportunidades/:id/historico` | só a timeline |
 | `POST /oportunidades` | cria em Primeiro Contato (`OPP-{n}`, com `n` de uma SEQUENCE do banco), com a linha "criada" no histórico |
@@ -516,7 +516,7 @@ Domínio: cada regra no limiar e um dia antes (F-02…F-10), precedência (F-11,
 
 - **Nenhum segredo no código:** tudo por variável de ambiente, validada no boot; `.env` no `.gitignore`; `.env.example` com valores locais descartáveis; `.env` não entra nas imagens (`.dockerignore`).
 - **Validação de entrada** com zod em corpo, query e parâmetros de todas as rotas; datas validadas de verdade (31/02 é recusado); corpos estritos (campo desconhecido → 400); limites de tamanho de texto e de payload.
-- **SQL injection:** Prisma com consultas parametrizadas (a busca usa `contains` + `mode: insensitive`).
+- **SQL injection:** Prisma com consultas parametrizadas. A busca é o único SQL escrito à mão (`$queryRaw` com template, para usar `unaccent`): o termo vai como parâmetro, nunca interpolado, e os curingas do `LIKE` são escapados.
 - **Saída declarada:** respostas serializadas por schema; a API só devolve os campos previstos.
 - **Erros sem vazamento:** 500 genérico, sem stack nem mensagem do banco; o detalhe vai para o log com `x-request-id`, gerado sempre pelo servidor (o valor enviado pelo cliente é ignorado, para não permitir forjar a correlação).
 - **Headers e perímetro:** Helmet, CORS restrito a `CORS_ORIGIN`, rate limit de 300 req/min por IP.
@@ -580,7 +580,6 @@ Fora do escopo desta versão (de propósito):
 - Consulta real de CNPJ e enriquecimento externo.
 - Dashboards, relatórios e exportação; anexos e propostas em PDF.
 - Paginação da listagem.
-- Busca sem acento (`clinica` não encontra "Clínica"): exigiria a extensão `unaccent` do Postgres.
 - Layout mobile dedicado: em telas estreitas o Kanban rola na horizontal; lista e Hoje funcionam.
 - Reabertura de oportunidade final (seria uma nova oportunidade com `reabertaDeId`).
 - Versionamento da API (`/v1`).
