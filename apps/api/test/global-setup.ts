@@ -19,7 +19,8 @@ export default async function globalSetup() {
     await cliente.connect();
   } catch (erro) {
     throw new Error(
-      `Não foi possível conectar ao Postgres de teste (${admin.host}). Rode "docker compose up -d postgres" antes de "pnpm test".\n${String(erro)}`,
+      `Não foi possível conectar ao Postgres de teste (${admin.host}). Rode "docker compose up -d postgres" antes de "pnpm test".`,
+      { cause: erro },
     );
   }
   try {
@@ -34,6 +35,6 @@ export default async function globalSetup() {
   } catch (erro) {
     const saida = (erro as { stderr?: Buffer; stdout?: Buffer }).stderr?.toString() ?? String(erro);
     throw new Error(`Falha ao aplicar migrations no banco de teste:
-${saida}`);
+${saida}`, { cause: erro });
   }
 }
