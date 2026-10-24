@@ -20,11 +20,14 @@ export function FaixaFinalizada({ op }: { op: OportunidadeDetalhe }) {
     <div
       className={cn(
         'rounded-lg border px-4 py-3 text-sm',
-        op.etapa === Etapa.FECHAMENTO ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-slate-300 bg-slate-100 text-slate-800',
+        op.etapa === Etapa.FECHAMENTO
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+          : 'border-slate-300 bg-slate-100 text-slate-800',
       )}
     >
       <p className="font-medium">
-        Oportunidade finalizada{finalizadaEm ? ` em ${dataHora(finalizadaEm)}` : ''}. Apenas observações podem ser editadas.
+        Oportunidade finalizada{finalizadaEm ? ` em ${dataHora(finalizadaEm)}` : ''}. Apenas observações podem
+        ser editadas.
       </p>
       {op.motivoPerda && (
         <p className="mt-1">

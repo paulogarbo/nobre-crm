@@ -2,7 +2,15 @@ import { Info } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export function Secao({ titulo, children, className }: { titulo: string; children: ReactNode; className?: string }) {
+export function Secao({
+  titulo,
+  children,
+  className,
+}: {
+  titulo: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section className={cn('rounded-xl border border-slate-200 bg-white p-4', className)}>
       <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</h3>

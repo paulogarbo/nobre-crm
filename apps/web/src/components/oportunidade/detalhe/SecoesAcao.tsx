@@ -32,7 +32,10 @@ export function SecaoAtencao({ op }: { op: OportunidadeDetalhe }) {
             const Icone = ICONE_SINAL[s.tipo];
             const e = ESTILO_SEVERIDADE[s.severidade];
             return (
-              <li key={s.tipo} className={cn('flex items-start gap-2 rounded-md px-2.5 py-1.5 text-sm', e.fundo)}>
+              <li
+                key={s.tipo}
+                className={cn('flex items-start gap-2 rounded-md px-2.5 py-1.5 text-sm', e.fundo)}
+              >
                 <Icone className={cn('mt-0.5 size-4 shrink-0', e.texto)} aria-hidden />
                 <span className="text-slate-800">{s.mensagem}</span>
                 <span className={cn('ml-auto text-xs font-medium', e.texto)}>{e.rotulo}</span>
@@ -58,7 +61,8 @@ export function SecaoProximaAcao({ aberto, hoje }: { aberto: FollowUpDaOportunid
           </div>
           <p className="text-sm text-slate-700">{aberto.descricao}</p>
           <p className="text-xs text-slate-500">
-            Prazo: {data(aberto.venceEm)} ({relativo(aberto.venceEm, hoje)}) · {ROTULOS_TIPO_FOLLOW_UP[aberto.tipo]}
+            Prazo: {data(aberto.venceEm)} ({relativo(aberto.venceEm, hoje)}) ·{' '}
+            {ROTULOS_TIPO_FOLLOW_UP[aberto.tipo]}
           </p>
         </div>
         <Button size="sm" disabled={concluir.isPending} onClick={() => concluir.mutate(aberto.id)}>

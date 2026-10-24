@@ -18,11 +18,14 @@ export function SecaoDados({ op, hoje }: { op: OportunidadeDetalhe; hoje: string
       <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <Campo rotulo="Vendedor responsável">{op.vendedor.nome}</Campo>
         <Campo rotulo="Último contato">
-          {data(op.ultimoContato)} {op.ultimoContato && <span className="text-slate-500">({haDias(op.diasSemContato)})</span>}
+          {data(op.ultimoContato)}{' '}
+          {op.ultimoContato && <span className="text-slate-500">({haDias(op.diasSemContato)})</span>}
         </Campo>
         <Campo rotulo="Validade da proposta" aviso={avisoApresentar('validadeProposta')}>
           {data(op.validadeProposta)}{' '}
-          {op.validadeProposta && <span className="text-slate-500">({relativo(op.validadeProposta, hoje)})</span>}
+          {op.validadeProposta && (
+            <span className="text-slate-500">({relativo(op.validadeProposta, hoje)})</span>
+          )}
         </Campo>
         <Campo rotulo="Evento do cliente">
           {data(op.eventoCliente)}{' '}
@@ -75,7 +78,9 @@ export function SecaoItens({ op }: { op: OportunidadeDetalhe }) {
               <tr key={i.id} className="border-t border-slate-100">
                 <td className="py-1.5">{i.descricao}</td>
                 <td className="py-1.5 text-right">{quantidade(i.quantidade)}</td>
-                <td className="py-1.5 text-right">{i.valorUnitario === null ? '—' : moeda(i.valorUnitario)}</td>
+                <td className="py-1.5 text-right">
+                  {i.valorUnitario === null ? '—' : moeda(i.valorUnitario)}
+                </td>
               </tr>
             ))}
           </tbody>
