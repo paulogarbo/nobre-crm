@@ -43,7 +43,9 @@ Seed concluído: 3 vendedores, 7 oportunidades, 7 itens, 22 transições.
 ... "origem":"boot","hoje":"2026-10-15","criados":3,"resolvidos":0,"substituidos":0,"mantidos":0,"msg":"job de follow-up: recálculo concluído"
 ```
 
-O seed é idempotente: subir de novo não duplica nada e devolve as 7 oportunidades do case ao estado original (oportunidades criadas pela interface são preservadas). Para zerar tudo: `docker compose down -v`.
+O seed é idempotente: subir de novo não duplica nada. Para zerar tudo: `docker compose down -v`.
+
+> **Atenção na demonstração:** reiniciar a API (`docker compose restart api` ou um novo `up`) **restaura as 7 oportunidades do case** ao estado original, desfazendo o que foi feito nelas pela interface. As oportunidades criadas pela interface (OPP-2008 em diante) são preservadas.
 
 | Serviço | URL / porta | Observação |
 |---|---|---|
@@ -69,7 +71,7 @@ curl -X POST http://localhost:3333/oportunidades/OPP-2005/transicoes \
 
 ### Sem Docker para a aplicação
 
-Só o banco no Docker; API e web rodando localmente (Node 20+, pnpm 11):
+Só o banco no Docker; API e web rodando localmente (Node 24, a versão do `.nvmrc`, das imagens Docker e do CI; mínimo 20; pnpm 11):
 
 ```bash
 docker compose up -d postgres
@@ -80,6 +82,22 @@ pnpm db:migrate        # aplica as migrations no banco nobre_crm
 pnpm db:seed
 pnpm dev               # API em :3333 (com o job) e web em :3000
 ```
+
+### Variáveis de ambiente
+
+| Variável | Padrão | Para quê |
+|---|---|---|
+| `DATABASE_URL` | (obrigatória) | conexão com o PostgreSQL; no compose é montada a partir de `POSTGRES_*` |
+| `PORT` / `HOST` | `3333` / `0.0.0.0` | onde a API escuta |
+| `CORS_ORIGIN` | `http://localhost:3000` | única origem aceita pelo CORS |
+| `REFERENCE_DATE` | vazia (data real) | "hoje" dos cálculos de domínio, `YYYY-MM-DD` (ver acima) |
+| `FOLLOWUP_CRON` | `0 * * * *` | frequência do job de follow-up (expressão cron) |
+| `FOLLOWUP_WEBHOOK_URL` | vazia (desligado) | URL que recebe o resumo quando o job cria ações (seção 8) |
+| `RATE_LIMIT_MAX` | `300` | requisições por minuto por IP antes do `429` |
+| `LOG_LEVEL` | `info` | nível do log (`fatal` … `trace`, `silent`) |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:3333` | URL da API vista pelo navegador (embutida no build da web) |
+
+A API valida todas no boot e, se alguma estiver inválida, para com uma mensagem dizendo qual.
 
 ---
 
@@ -425,7 +443,7 @@ O ciclo mostra que a automação entende o problema, não só datas:
 
 ### Notificação (webhook opcional)
 
-Com `FOLLOWUP_WEBHOOK_URL` definida, sempre que o job cria ou substitui ações ele envia um `POST` JSON (timeout de 5 s, sem bloquear nada; falha só vai para o log). Serve para um webhook de entrada do Slack/Teams ou um fluxo do n8n:
+Com `FOLLOWUP_WEBHOOK_URL` definida, sempre que o job cria ou substitui ações ele envia um `POST` JSON (timeout de 5 s, sem bloquear nada; falha só vai para o log). O payload abaixo é o formato próprio do CRM: **Slack e Teams não o aceitam direto** (os webhooks de entrada deles esperam `{ "text": ... }` ou cards). Para notificar nesses canais, aponte a URL para um fluxo do n8n/Make, que transforma o JSON na mensagem do canal, ou para um endpoint próprio:
 
 ```json
 { "hoje": "2026-10-15", "resumo": { "criados": 3, "substituidos": 0, "resolvidos": 0 },
@@ -550,6 +568,8 @@ Fora do escopo desta versão (de propósito):
 - Layout mobile dedicado: em telas estreitas o Kanban rola na horizontal; lista e Hoje funcionam.
 - Reabertura de oportunidade final (seria uma nova oportunidade com `reabertaDeId`).
 - Versionamento da API (`/v1`).
+- Multi-tenant (as três marcas do grupo no mesmo CRM): hoje há uma única base; o caminho está na seção 10 (multi-marca).
+- Deploy e entrega contínua: há CI (lint, typecheck, testes e build), mas não há pipeline de deploy nem ambiente publicado.
 
 Próximos passos, em ordem: autenticação OIDC e RBAC; limiares de atenção/follow-up configuráveis pelo gestor; entidade Empresa; paginação com score materializado; reabertura; notificações reais (push/WhatsApp interno); métricas de funil (conversão e tempo por etapa, motivos de perda e de retorno, que o histórico já registra).
 
@@ -576,3 +596,8 @@ Usei IA (Claude, da Anthropic) em quase todo o projeto e prefiro dizer exatament
 ## 15. Autor
 
 Paulo Alex — outubro de 2026. Case técnico para a vaga de Desenvolvedor Full Stack Pleno do Grupo Nobre.
+
+- E-mail: [CONFIRMAR COM O AUTOR]
+- LinkedIn: [CONFIRMAR COM O AUTOR]
+
+**Licença:** nenhuma licença de uso é concedida. O código foi escrito para avaliação no processo seletivo; todos os direitos reservados ao autor.
