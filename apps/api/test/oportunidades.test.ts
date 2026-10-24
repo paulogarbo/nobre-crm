@@ -19,6 +19,9 @@ const get = (url: string) => chamar(ctx.app, 'GET', url);
 const transicionar = (codigo: string, vendedorId: string, body: unknown) =>
   chamar(ctx.app, 'POST', `/oportunidades/${codigo}/transicoes`, { vendedorId, body });
 
+const transicionarSemIdentidade = (body: unknown) =>
+  chamar(ctx.app, 'POST', '/oportunidades/OPP-2003/transicoes', { body });
+
 async function contarHistorico(codigo: string) {
   return ctx.prisma.transicaoEtapa.count({ where: { oportunidade: { codigo } } });
 }
@@ -179,6 +182,18 @@ describe('criação e edição', () => {
     const res = await chamar(ctx.app, 'POST', '/oportunidades', { body: nova });
     expect(res.status).toBe(401);
     expect(res.body.code).toBe('IDENTIDADE_AUSENTE');
+  });
+
+  it('sem identidade, 401 vem antes da validação do corpo', async () => {
+    const invalido = { empresa: '', valorEstimado: -1 };
+    expect((await chamar(ctx.app, 'POST', '/oportunidades', { body: invalido })).status).toBe(401);
+    expect((await chamar(ctx.app, 'PATCH', '/oportunidades/OPP-2001', { body: { valorEstimado: 'x' } })).status).toBe(401);
+    expect((await chamar(ctx.app, 'POST', '/oportunidades/OPP-2001/contatos', { body: { data: 'ontem' } })).status).toBe(401);
+    expect((await transicionarSemIdentidade({ para: 'GANHA' })).status).toBe(401);
+    const concluir = await chamar(ctx.app, 'POST', '/follow-ups/x/concluir', { body: { registrarContato: 'sim' } });
+    expect(concluir.status).toBe(401);
+    // com identidade, o mesmo corpo inválido cai na validação
+    expect((await chamar(ctx.app, 'POST', '/oportunidades', { body: invalido, vendedorId: v.Ana })).status).toBe(400);
   });
 
   it('I-14 POST com vendedor inexistente → 401 IDENTIDADE_INVALIDA', async () => {

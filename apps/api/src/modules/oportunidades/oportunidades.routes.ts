@@ -41,7 +41,7 @@ export async function rotasOportunidades(app: FastifyInstance, { identidade, opo
   r.post(
     '/oportunidades',
     {
-      preHandler: identidade.obrigatoria,
+      preValidation: identidade.obrigatoria,
       schema: { body: corpoCriar, response: { 201: oportunidadeDetalhe } },
     },
     async (req, reply) => {
@@ -53,7 +53,7 @@ export async function rotasOportunidades(app: FastifyInstance, { identidade, opo
   r.patch(
     '/oportunidades/:id',
     {
-      preHandler: identidade.obrigatoria,
+      preValidation: identidade.obrigatoria,
       schema: { params: paramsId, body: corpoEditar, response: { 200: oportunidadeDetalhe } },
     },
     (req) => oportunidades.editar(req.params.id, req.body),
@@ -62,7 +62,7 @@ export async function rotasOportunidades(app: FastifyInstance, { identidade, opo
   r.post(
     '/oportunidades/:id/contatos',
     {
-      preHandler: identidade.obrigatoria,
+      preValidation: identidade.obrigatoria,
       schema: { params: paramsId, body: corpoContato, response: { 200: oportunidadeDetalhe } },
     },
     (req) => oportunidades.registrarContato(req.params.id, req.body ?? undefined),
@@ -71,7 +71,7 @@ export async function rotasOportunidades(app: FastifyInstance, { identidade, opo
   r.post(
     '/oportunidades/:id/transicoes',
     {
-      preHandler: identidade.obrigatoria,
+      preValidation: identidade.obrigatoria,
       schema: { params: paramsId, body: corpoTransicao, response: { 200: oportunidadeDetalhe } },
     },
     async (req) => {

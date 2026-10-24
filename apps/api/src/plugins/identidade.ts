@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify';
+import type { FastifyInstance, FastifyRequest, preValidationAsyncHookHandler } from 'fastify';
 import type { PrismaClient } from '../lib/prisma';
 import { AppError } from '../lib/errors';
 
@@ -11,11 +11,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * em produção ele passa a validar um JWT/OIDC e preencher `request.vendedor` do mesmo jeito, sem
  * mudar nenhuma rota.
  */
+/**
+ * Os ganchos rodam em `preValidation`: um cliente sem identidade recebe 401 antes de qualquer 400 de
+ * validação, sem descobrir o formato esperado do corpo.
+ */
 export interface Identidade {
   /** Exige o header; 401 se ausente ou se o vendedor não existir. */
-  obrigatoria: preHandlerAsyncHookHandler;
+  obrigatoria: preValidationAsyncHookHandler;
   /** Carrega o vendedor se o header vier; 401 só se vier inválido. */
-  opcional: preHandlerAsyncHookHandler;
+  opcional: preValidationAsyncHookHandler;
 }
 
 export function criarIdentidade(app: FastifyInstance, prisma: PrismaClient): Identidade {

@@ -20,7 +20,7 @@ export async function rotasFollowUps(
 
   r.get(
     '/follow-ups',
-    { preHandler: identidade.opcional, schema: { querystring: queryListar, response: { 200: respostaListar } } },
+    { preValidation: identidade.opcional, schema: { querystring: queryListar, response: { 200: respostaListar } } },
     (req) => {
       const vendedorId = req.query.vendedorId ?? req.vendedor?.id;
       if (!vendedorId) {
@@ -35,7 +35,7 @@ export async function rotasFollowUps(
   r.post(
     '/follow-ups/:id/concluir',
     {
-      preHandler: identidade.obrigatoria,
+      preValidation: identidade.obrigatoria,
       schema: { params: paramsId, body: corpoConcluir, response: { 200: respostaConcluir } },
     },
     (req) =>
@@ -48,7 +48,7 @@ export async function rotasFollowUps(
 
   r.post(
     '/follow-ups/recalcular',
-    { preHandler: identidade.obrigatoria, schema: { response: { 200: respostaRecalcular } } },
+    { preValidation: identidade.obrigatoria, schema: { response: { 200: respostaRecalcular } } },
     async () => {
       const { novas: _novas, ...resultado } = await followUps.recalcularTodos();
       return resultado;
