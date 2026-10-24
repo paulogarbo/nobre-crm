@@ -5,12 +5,14 @@ import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { AcoesOportunidadeProvider } from '@/components/oportunidade/AcoesOportunidade';
 import { TooltipProvider } from '@/components/ui/menu';
+import { CascaEstatica } from './CascaEstatica';
 
 const semAssinatura = () => () => {};
 
 /**
  * Sem SSR de dados (decisão do projeto): a interface depende da identidade guardada no navegador e de
  * consultas à API, então só renderiza no cliente. Evita divergência de hidratação entre topbar e página.
+ * Até lá, o servidor entrega uma casca estática (moldura + skeleton) em vez de uma tela vazia.
  */
 function useNoCliente() {
   return useSyncExternalStore(semAssinatura, () => true, () => false);
@@ -29,7 +31,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={200}>
-        {noCliente && <AcoesOportunidadeProvider>{children}</AcoesOportunidadeProvider>}
+        {noCliente ? <AcoesOportunidadeProvider>{children}</AcoesOportunidadeProvider> : <CascaEstatica />}
         <Toaster position="bottom-right" richColors closeButton duration={5000} />
       </TooltipProvider>
     </QueryClientProvider>
