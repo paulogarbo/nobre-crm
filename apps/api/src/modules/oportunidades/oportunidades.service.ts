@@ -71,6 +71,12 @@ function ordenar(itens: OportunidadeResumoDTO[], ordem: Ordem): OportunidadeResu
   return [...itens].sort(comparadores[ordem]);
 }
 
+/** Observações são texto livre; registros datados entram como novas linhas "[YYYY-MM-DD] texto". */
+function anexar(observacoes: string | null, data: DataCivil, texto: string): string {
+  const linha = `[${data}] ${texto}`;
+  return observacoes ? `${observacoes}\n${linha}` : linha;
+}
+
 function ehCodigoDuplicado(erro: unknown): boolean {
   return erro instanceof Prisma.PrismaClientKnownRequestError && erro.code === 'P2002';
 }
@@ -238,12 +244,18 @@ export class OportunidadesService {
     const novo = paraDataBanco(data);
     const ultimoContato = atual.ultimoContato && atual.ultimoContato > novo ? atual.ultimoContato : novo;
 
-    let observacoes = atual.observacoes;
-    if (corpo?.observacao) {
-      const linha = `[${data}] ${corpo.observacao}`;
-      observacoes = observacoes ? `${observacoes}\n${linha}` : linha;
-    }
+    const observacoes = corpo?.observacao ? anexar(atual.observacoes, data, corpo.observacao) : atual.observacoes;
     await cliente.oportunidade.update({ where: { id: atual.id }, data: { ultimoContato, observacoes } });
     return atual.id;
+  }
+
+  /** Anexa uma observação datada sem mexer no contato. */
+  async anotar(cliente: PrismaClient | Prisma.TransactionClient, id: string, observacao: string): Promise<void> {
+    const atual = await cliente.oportunidade.findUnique({ where: { id }, select: { observacoes: true } });
+    if (!atual) throw erros.oportunidadeNaoEncontrada();
+    await cliente.oportunidade.update({
+      where: { id },
+      data: { observacoes: anexar(atual.observacoes, this.relogio.hoje(), observacao) },
+    });
   }
 }

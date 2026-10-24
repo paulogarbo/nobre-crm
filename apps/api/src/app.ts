@@ -10,6 +10,8 @@ import type { Env } from './config/env';
 import { criarRelogio, type Relogio } from './lib/clock';
 import type { PrismaClient } from './lib/prisma';
 import { rotasEtapas } from './modules/etapas/etapas.routes';
+import { rotasFollowUps } from './modules/follow-ups/follow-ups.routes';
+import { FollowUpsService } from './modules/follow-ups/follow-ups.service';
 import { rotasOportunidades } from './modules/oportunidades/oportunidades.routes';
 import { OportunidadesService, type AoAlterarOportunidade } from './modules/oportunidades/oportunidades.service';
 import { TransicoesService } from './modules/transicoes/transicoes.service';
@@ -30,6 +32,7 @@ export interface Servicos {
   relogio: Relogio;
   oportunidades: OportunidadesService;
   transicoes: TransicoesService;
+  followUps: FollowUpsService;
 }
 
 declare module 'fastify' {
@@ -74,12 +77,20 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
 
   const identidade = criarIdentidade(app, prisma);
 
-  // Gatilho pós-alteração: recalcular o follow-up da oportunidade (ligado junto com o motor de follow-up).
-  const aoAlterar: AoAlterarOportunidade = async () => {};
+  // Gatilho pós-alteração (após o commit): recalcular a próxima ação da oportunidade. Se o recálculo
+  // falhar, a alteração já está gravada; o erro vai para o log e o job corrige na próxima execução.
+  const aoAlterar: AoAlterarOportunidade = async (id) => {
+    try {
+      await followUps.recalcularPara(id);
+    } catch (erro) {
+      app.log.error({ err: erro, oportunidadeId: id }, 'falha ao recalcular follow-up');
+    }
+  };
 
   const oportunidades = new OportunidadesService(prisma, relogio, aoAlterar);
   const transicoes = new TransicoesService(prisma, relogio, aoAlterar);
-  app.decorate('servicos', { relogio, oportunidades, transicoes });
+  const followUps = new FollowUpsService(prisma, relogio, () => oportunidades);
+  app.decorate('servicos', { relogio, oportunidades, transicoes, followUps });
 
   app.withTypeProvider<ZodTypeProvider>().get(
     '/health',
@@ -96,6 +107,7 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
   await app.register(rotasEtapas, { relogio });
   await app.register(rotasVendedores, { prisma });
   await app.register(rotasOportunidades, { identidade, oportunidades, transicoes });
+  await app.register(rotasFollowUps, { identidade, followUps });
 
   if (env.NODE_ENV === 'test') {
     // Só em teste: prova que erro inesperado vira 500 genérico, sem stack.
