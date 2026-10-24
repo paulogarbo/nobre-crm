@@ -11,7 +11,8 @@ allowBuilds:
   unrs-resolver: true
 
 # Correções de segurança em dependências transitivas (pnpm audit): postcss usado pelo Next e
-# esbuild usado por tsup/vite em desenvolvimento.
+# esbuild usado pelo tsup 8 (que ainda pede uma faixa antiga). O tsx e o vite já pedem um esbuild
+# corrigido; o override vale só para o tsup, sem forçar versão nos demais.
 overrides:
   postcss: ^8.5.23
-  esbuild: ^0.28.1
+  tsup>esbuild: ^0.28.1
