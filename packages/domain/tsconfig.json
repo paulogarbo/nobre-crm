@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    // Sem tipos do Node (nem do DOM, que o lib base já não inclui): o compilador recusa process,
+    // fs, setTimeout ou console em src/, garantindo que o domínio continue puro.
+    "types": []
   },
-  "include": ["src", "test"]
+  "include": ["src"]
 }

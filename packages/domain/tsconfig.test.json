@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Os testes podem usar Node (ex.: T-04b lê os arquivos de src/ para provar que não há relógio).
+    "types": ["node"]
+  },
+  "include": ["src", "test"]
+}
