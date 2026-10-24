@@ -2,6 +2,7 @@ import {
   ROTULOS,
   avaliarAtencao,
   diasEntre,
+  hojeDataCivil,
   transicoesPermitidas,
   type DataCivil,
   type Etapa,
@@ -37,7 +38,8 @@ export function paraDominio(op: Oportunidade & { itens: ItemBrinde[] }): Oportun
     validadeProposta: deDataBancoOuNull(op.validadeProposta),
     eventoCliente: deDataBancoOuNull(op.eventoCliente),
     motivoPerda: op.motivoPerda,
-    criadaEm: deDataBanco(op.createdAt),
+    // createdAt é um instante: a data civil da criação é a de Brasília, não a de UTC.
+    criadaEm: hojeDataCivil(op.createdAt),
   };
 }
 
