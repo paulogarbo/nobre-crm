@@ -52,9 +52,9 @@ export function SemResultados({ onLimpar }: { onLimpar: () => void }) {
 /** 6 colunas com 3 skeletons de card cada. */
 export function CarregandoBoard() {
   return (
-    <div className="flex gap-4 overflow-hidden" aria-busy="true" aria-label="Carregando oportunidades">
+    <div className="flex gap-3 overflow-hidden" aria-busy="true" aria-label="Carregando oportunidades">
       {Array.from({ length: 6 }, (_, c) => (
-        <div key={c} className="flex min-w-[248px] flex-1 basis-0 flex-col gap-3 rounded-xl bg-slate-200/50 p-3">
+        <div key={c} className="flex min-w-[224px] flex-1 basis-0 flex-col gap-3 rounded-xl bg-slate-200/50 p-3">
           <Skeleton className="h-5 w-32" />
           {Array.from({ length: 3 }, (_, i) => (
             <div key={i} className="space-y-2 rounded-lg bg-white p-3 shadow-sm">

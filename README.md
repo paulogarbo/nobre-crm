@@ -551,7 +551,7 @@ O histórico do seed (22 transições) foi construído para ser coerente com as 
 - **Empresa como atributo, não entidade:** suficiente para v1; normalizar quando a mesma empresa tiver várias oportunidades.
 - **Job dentro do processo da API** (`node-cron`): sem worker separado para o volume do case; o índice único parcial e o recálculo idempotente tornam seguro rodar job e requisições ao mesmo tempo.
 - **Concorrência otimista na transição:** o update só acontece se a etapa ainda for a que foi validada; se outra pessoa mudou antes, a requisição é revalidada contra o estado novo.
-- **Colunas flexíveis no Kanban** (mínimo de 248 px): com a coluna Perdida recolhida, a board inteira cabe a partir de ~1440 px; abaixo disso, rolagem horizontal.
+- **Colunas flexíveis no Kanban** (mínimo de 224 px, até 360 px): com a coluna Perdida recolhida, a board inteira cabe a partir de 1280 px; abaixo disso, rolagem horizontal.
 
 ---
 

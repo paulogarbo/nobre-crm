@@ -122,7 +122,7 @@ export function KanbanBoard({ itens, hoje }: { itens: OportunidadeResumo[]; hoje
         },
       }}
     >
-      <div className="flex gap-4 overflow-x-auto pb-3">
+      <div className="flex gap-3 overflow-x-auto pb-3">
         {TODAS_AS_ETAPAS.map((etapa) => {
           const ehPerdida = etapa === Etapa.PERDIDA;
           return (
