@@ -14,7 +14,7 @@ import { deDataBanco, paraDataBanco } from '../../lib/datas-banco';
 import { erros } from '../../lib/errors';
 import type { PrismaClient } from '../../lib/prisma';
 import { followUpDaOportunidadeDTO, paraDominio } from '../oportunidades/oportunidades.mapper';
-import type { Executor, OportunidadesService } from '../oportunidades/oportunidades.service';
+import type { AoAlterarOportunidade, Executor, OportunidadesService } from '../oportunidades/oportunidades.service';
 import type { FollowUpDTO, StatusFollowUp } from './follow-ups.schemas';
 
 export interface ResultadoRecalculo {
@@ -60,6 +60,10 @@ export class FollowUpsService {
     private readonly relogio: Relogio,
     /** Resolvido depois da construção (dependência mútua com OportunidadesService). */
     private readonly oportunidades: () => OportunidadesService,
+    /** Gatilho pós-commit (recálculo com log de falha); por padrão, recalcula direto. */
+    private readonly aoAlterar: AoAlterarOportunidade = async (id) => {
+      await this.recalcularPara(id);
+    },
   ) {}
 
   toDTO(f: FollowUpComOportunidade, hoje: DataCivil): FollowUpDTO {
@@ -220,7 +224,8 @@ export class FollowUpsService {
       return f.oportunidadeId;
     });
 
-    await this.recalcularPara(oportunidadeId);
+    // A conclusão já foi gravada: falha no recálculo vai para o log (o job corrige) e não vira 500.
+    await this.aoAlterar(oportunidadeId);
     const concluido = await this.prisma.followUp.findUniqueOrThrow({ where: { id }, include: includeOportunidade });
     return {
       followUp: this.toDTO(concluido, this.relogio.hoje()),

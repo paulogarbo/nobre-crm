@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { executarSeed } from '../prisma/seed-runner';
 import type { PrismaClient } from '../src/lib/prisma';
 import { iniciarJobFollowUps } from '../src/modules/follow-ups/follow-ups.job';
@@ -176,6 +176,25 @@ describe('motor de follow-up via API', () => {
     expect(inexistente.status).toBe(404);
     expect(inexistente.body.code).toBe('FOLLOW_UP_NAO_ENCONTRADO');
     expect((await chamar(ctx.app, 'POST', `/follow-ups/${f!.id}/concluir`)).status).toBe(401);
+  });
+
+  it('concluir com falha transitória no recálculo devolve 200 (a conclusão já foi gravada)', async () => {
+    await recalcular();
+    const [f] = await abertosDe('OPP-2004');
+    const espiao = vi
+      .spyOn(ctx.app.servicos.followUps, 'recalcularPara')
+      .mockRejectedValueOnce(new Error('conexão caiu'));
+    try {
+      const res = await chamar(ctx.app, 'POST', `/follow-ups/${f!.id}/concluir`, { body: {}, vendedorId: v.Carla });
+      expect(res.status).toBe(200);
+      expect(res.body.followUp).toMatchObject({ id: f!.id, status: 'CONCLUIDO' });
+      expect(res.body.oportunidade.ultimoContato).toBe('2026-10-15');
+      expect(espiao).toHaveBeenCalledTimes(1);
+    } finally {
+      espiao.mockRestore();
+    }
+    // o próximo recálculo (job) cria a ação que faltou
+    expect((await recalcular()).body).toMatchObject({ criados: 1 });
   });
 
   it('OPP-2003: concluir mantém uma ação crítica enquanto o evento estiver próximo', async () => {

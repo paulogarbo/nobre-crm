@@ -91,7 +91,7 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
 
   const oportunidades = new OportunidadesService(prisma, relogio, aoAlterar);
   const transicoes = new TransicoesService(prisma, relogio, aoAlterar);
-  const followUps = new FollowUpsService(prisma, relogio, () => oportunidades);
+  const followUps = new FollowUpsService(prisma, relogio, () => oportunidades, aoAlterar);
   app.decorate('servicos', { relogio, oportunidades, transicoes, followUps });
 
   app.withTypeProvider<ZodTypeProvider>().get(
