@@ -145,6 +145,8 @@ export const followUpDaOportunidade = z.object({
   status: statusFollowUp,
   criadoEm: z.string(),
   encerradoEm: z.string().nullable(),
+  /** Quem concluiu (só em CONCLUIDO; resolver e substituir são do motor). */
+  concluidoPor: vendedorRef.nullable(),
 });
 export type FollowUpDaOportunidadeDTO = z.infer<typeof followUpDaOportunidade>;
 
@@ -155,6 +157,8 @@ export const oportunidadeDetalhe = oportunidadeResumo.extend({
   contatoTelefone: z.string().nullable(),
   motivoPerda: z.string().nullable(),
   observacoes: z.string().nullable(),
+  /** Quem fez a última edição de dados (PATCH); null se nunca foi editada. */
+  atualizadoPor: vendedorRef.nullable(),
   historico: z.array(historicoSaida),
   followUps: z.array(followUpDaOportunidade),
 });

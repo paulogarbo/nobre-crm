@@ -8,6 +8,7 @@ type Cliente = PrismaClient | Prisma.TransactionClient;
 
 export const includeOportunidade = {
   oportunidade: { include: { vendedor: { select: { id: true, nome: true } } } },
+  concluidoPor: { select: { id: true, nome: true } },
 } as const satisfies Prisma.FollowUpInclude;
 export type FollowUpComOportunidade = Prisma.FollowUpGetPayload<{ include: typeof includeOportunidade }>;
 
@@ -80,10 +81,10 @@ export const followUpsRepository = {
   },
 
   /** Encerramento condicional: só conclui se ainda estiver ABERTO. Devolve quantos registros mudaram (0 ou 1). */
-  async concluirSeAberto(tx: Cliente, id: string, agora: Date): Promise<number> {
+  async concluirSeAberto(tx: Cliente, id: string, agora: Date, executorId: string): Promise<number> {
     const { count } = await tx.followUp.updateMany({
       where: { id, status: 'ABERTO' },
-      data: { status: 'CONCLUIDO', encerradoEm: agora },
+      data: { status: 'CONCLUIDO', encerradoEm: agora, concluidoPorId: executorId },
     });
     return count;
   },

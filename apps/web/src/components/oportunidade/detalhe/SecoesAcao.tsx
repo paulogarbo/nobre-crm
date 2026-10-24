@@ -85,7 +85,8 @@ export function FollowUpsAnteriores({ anteriores }: { anteriores: FollowUpDaOpor
           <li key={f.id} className="text-sm">
             <span className="font-medium text-slate-800">{f.titulo}</span>
             <span className="block text-xs text-slate-500">
-              {STATUS_FOLLOW_UP[f.status]} · criado em {dataHora(f.criadoEm)}
+              {f.concluidoPor ? `Concluído por ${f.concluidoPor.nome}` : STATUS_FOLLOW_UP[f.status]} · criado
+              em {dataHora(f.criadoEm)}
               {f.encerradoEm ? ` · encerrado em ${dataHora(f.encerradoEm)}` : ''}
             </span>
           </li>

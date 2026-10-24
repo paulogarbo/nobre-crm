@@ -163,14 +163,14 @@ export class FollowUpsService {
   async concluir(
     id: string,
     corpo: { registrarContato: boolean; observacao?: string },
-    _executor: Executor,
+    executor: Executor,
   ) {
     const oportunidades = this.oportunidades();
     const oportunidadeId = await this.prisma.$transaction(async (tx) => {
       const f = await repo.buscar(tx, id);
       if (!f) throw erros.followUpNaoEncontrado();
       // Encerramento condicional: duas conclusões simultâneas não passam as duas.
-      if ((await repo.concluirSeAberto(tx, id, this.relogio.agora())) === 0) throw erros.followUpJaEncerrado();
+      if ((await repo.concluirSeAberto(tx, id, this.relogio.agora(), executor.id)) === 0) throw erros.followUpJaEncerrado();
       if (corpo.registrarContato) {
         await oportunidades.aplicarContato(tx, f.oportunidadeId, { observacao: corpo.observacao });
       } else if (corpo.observacao) {

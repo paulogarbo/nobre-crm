@@ -15,7 +15,8 @@ export const includeDetalhe = {
   itens: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
   vendedor: vendedorRef,
   transicoes: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { vendedor: vendedorRef } },
-  followUps: { orderBy: { criadoEm: 'desc' } },
+  followUps: { orderBy: { criadoEm: 'desc' }, include: { concluidoPor: vendedorRef } },
+  atualizadoPor: vendedorRef,
 } as const satisfies Prisma.OportunidadeInclude;
 
 export type OportunidadeComResumo = Prisma.OportunidadeGetPayload<{ include: typeof includeResumo }>;

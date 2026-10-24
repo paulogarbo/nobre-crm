@@ -134,6 +134,10 @@ describe('motor de follow-up via API', () => {
     expect(res.status).toBe(200);
     expect(res.body.followUp).toMatchObject({ id: original!.id, status: 'CONCLUIDO' });
     expect(res.body.followUp.encerradoEm).toBeTruthy();
+    expect(res.body.followUp.concluidoPor).toEqual({ id: v.Bruno, nome: 'Bruno' });
+    // no detalhe, a ação concluída guarda quem concluiu; a nova (aberta) ainda não tem autor
+    const doDetalhe = Object.fromEntries(res.body.oportunidade.followUps.map((f: any) => [f.status, f.concluidoPor]));
+    expect(doDetalhe).toEqual({ CONCLUIDO: { id: v.Bruno, nome: 'Bruno' }, ABERTO: null });
     expect(res.body.oportunidade.ultimoContato).toBe('2026-10-15');
 
     // proposta continua vencida: registrar contato não resolve; nasce um novo aberto do mesmo tipo

@@ -40,7 +40,9 @@ export function paraDominio(op: Oportunidade & { itens: ItemBrinde[] }): Oportun
   };
 }
 
-export function followUpDaOportunidadeDTO(f: FollowUp): FollowUpDaOportunidadeDTO {
+type FollowUpComAutor = FollowUp & { concluidoPor: { id: string; nome: string } | null };
+
+export function followUpDaOportunidadeDTO(f: FollowUpComAutor): FollowUpDaOportunidadeDTO {
   return {
     id: f.id,
     tipo: f.tipo,
@@ -51,6 +53,7 @@ export function followUpDaOportunidadeDTO(f: FollowUp): FollowUpDaOportunidadeDT
     status: f.status,
     criadoEm: f.criadoEm.toISOString(),
     encerradoEm: f.encerradoEm?.toISOString() ?? null,
+    concluidoPor: f.concluidoPor,
   };
 }
 
@@ -116,6 +119,7 @@ export function paraDetalhe(op: OportunidadeComDetalhe, hoje: DataCivil): Oportu
     contatoTelefone: op.contatoTelefone,
     motivoPerda: op.motivoPerda,
     observacoes: op.observacoes,
+    atualizadoPor: op.atualizadoPor,
     historico: op.transicoes.map(historicoDTO),
     followUps: op.followUps.map(followUpDaOportunidadeDTO),
   };

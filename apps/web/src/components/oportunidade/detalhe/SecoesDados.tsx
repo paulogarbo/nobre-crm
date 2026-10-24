@@ -47,6 +47,7 @@ export function SecaoDados({ op, hoje }: { op: OportunidadeDetalhe; hoje: string
           )}
         </Campo>
         <Campo rotulo="Criada em">{dataHora(op.createdAt)}</Campo>
+        {op.atualizadoPor && <Campo rotulo="Última edição dos dados por">{op.atualizadoPor.nome}</Campo>}
         <div className="sm:col-span-2">
           <Campo rotulo="Observações">
             {op.observacoes ? <span className="whitespace-pre-wrap">{op.observacoes}</span> : '—'}

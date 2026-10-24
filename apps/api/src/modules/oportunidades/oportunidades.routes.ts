@@ -56,7 +56,7 @@ export async function rotasOportunidades(app: FastifyInstance, { identidade, opo
       preValidation: identidade.obrigatoria,
       schema: { params: paramsId, body: corpoEditar, response: { 200: oportunidadeDetalhe } },
     },
-    (req) => oportunidades.editar(req.params.id, req.body),
+    (req) => oportunidades.editar(req.params.id, req.body, vendedorDaRequisicao(req)),
   );
 
   r.post(

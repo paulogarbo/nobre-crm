@@ -48,6 +48,7 @@ export async function executarSeed(prisma: PrismaClient): Promise<ResultadoSeed>
         eventoCliente: paraDataBancoOuNull(o.eventoCliente),
         motivoPerda: o.motivoPerda,
         observacoes: null,
+        atualizadoPorId: null,
         createdAt: new Date(o.createdAt),
       };
       const op = await tx.oportunidade.upsert({

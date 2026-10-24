@@ -327,6 +327,18 @@ describe('criação e edição', () => {
     }
   });
 
+  it('PATCH registra quem fez a última edição', async () => {
+    expect((await get('/oportunidades/OPP-2001')).body.atualizadoPor).toBeNull();
+    const res = await chamar(ctx.app, 'PATCH', '/oportunidades/OPP-2001', {
+      body: { validadeProposta: '2026-10-30' },
+      vendedorId: v.Carla,
+    });
+    expect(res.body.atualizadoPor).toEqual({ id: v.Carla, nome: 'Carla' });
+    expect(res.body.vendedor.nome).toBe('Ana'); // a dona continua a mesma
+    await executarSeed(ctx.prisma); // restart: a oportunidade do case volta ao estado original
+    expect((await get('/oportunidades/OPP-2001')).body.atualizadoPor).toBeNull();
+  });
+
   it('I-20 PATCH itens substitui a lista inteira', async () => {
     const res = await chamar(ctx.app, 'PATCH', '/oportunidades/OPP-2001', {
       body: {

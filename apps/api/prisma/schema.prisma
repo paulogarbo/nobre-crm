@@ -47,8 +47,10 @@ model Vendedor {
   email     String   @unique
   createdAt DateTime @default(now()) @map("created_at")
 
-  oportunidades Oportunidade[]
-  transicoes    TransicaoEtapa[]
+  oportunidades         Oportunidade[]   @relation("Responsavel")
+  oportunidadesEditadas Oportunidade[]   @relation("UltimaEdicao")
+  transicoes            TransicaoEtapa[]
+  followUpsConcluidos   FollowUp[]
 
   @@map("vendedores")
 }
@@ -71,11 +73,13 @@ model Oportunidade {
   observacoes      String?
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
+  atualizadoPorId  String?   @map("atualizado_por_id") // quem fez a última edição (PATCH)
 
-  vendedor   Vendedor         @relation(fields: [vendedorId], references: [id])
-  itens      ItemBrinde[]
-  transicoes TransicaoEtapa[]
-  followUps  FollowUp[]
+  vendedor      Vendedor         @relation("Responsavel", fields: [vendedorId], references: [id])
+  atualizadoPor Vendedor?        @relation("UltimaEdicao", fields: [atualizadoPorId], references: [id])
+  itens         ItemBrinde[]
+  transicoes    TransicaoEtapa[]
+  followUps     FollowUp[]
 
   @@index([etapa])
   @@index([vendedorId])
@@ -125,8 +129,10 @@ model FollowUp {
   status         StatusFollowUp     @default(ABERTO)
   criadoEm       DateTime           @default(now()) @map("criado_em")
   encerradoEm    DateTime?          @map("encerrado_em")
+  concluidoPorId String?            @map("concluido_por_id") // só quando o vendedor conclui (CONCLUIDO)
 
   oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  concluidoPor Vendedor?    @relation(fields: [concluidoPorId], references: [id])
 
   @@index([oportunidadeId, status])
   @@index([status, venceEm])

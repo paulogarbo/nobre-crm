@@ -8,7 +8,7 @@ function oportunidade(createdAt: Date): Oportunidade & { itens: ItemBrinde[] } {
     id: '1', codigo: 'OPP-2100', empresa: 'Lead da Noite', cnpj: null, contatoNome: null, contatoEmail: null,
     contatoTelefone: null, vendedorId: 'v', etapa: Etapa.PRIMEIRO_CONTATO, valorEstimado: new Prisma.Decimal(1000),
     ultimoContato: null, validadeProposta: null, eventoCliente: null, motivoPerda: null, observacoes: null,
-    createdAt, updatedAt: createdAt, itens: [],
+    createdAt, updatedAt: createdAt, atualizadoPorId: null, itens: [],
   };
 }
 

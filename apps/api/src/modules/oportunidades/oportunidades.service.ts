@@ -152,7 +152,7 @@ export class OportunidadesService {
     throw erros.codigoDuplicado();
   }
 
-  async editar(idOuCodigo: string, corpo: CorpoEditar): Promise<OportunidadeDetalheDTO> {
+  async editar(idOuCodigo: string, corpo: CorpoEditar, executor: Executor): Promise<OportunidadeDetalheDTO> {
     const atual = await repo.buscarEtapa(this.prisma, idOuCodigo);
     if (!atual) throw erros.oportunidadeNaoEncontrada();
 
@@ -163,7 +163,7 @@ export class OportunidadesService {
     exigirContatoNaoFuturo(corpo.ultimoContato, this.relogio.hoje(), 'ultimoContato');
     if (corpo.vendedorId) await this.exigirVendedor(corpo.vendedorId);
 
-    const data: Prisma.OportunidadeUncheckedUpdateInput = {};
+    const data: Prisma.OportunidadeUncheckedUpdateInput = { atualizadoPorId: executor.id };
     if (corpo.empresa !== undefined) data.empresa = corpo.empresa;
     if (corpo.vendedorId !== undefined) data.vendedorId = corpo.vendedorId;
     if (corpo.cnpj !== undefined) data.cnpj = corpo.cnpj;
