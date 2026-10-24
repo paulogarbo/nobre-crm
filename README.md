@@ -548,7 +548,19 @@ Próximos passos, em ordem: autenticação OIDC e RBAC; limiares de atenção/fo
 
 ## 14. Uso de IA
 
-Usei um assistente de IA (Claude) como par de programação: para discutir a modelagem do funil e dos retornos de etapa, gerar scaffolding, escrever casos de teste a partir das regras que defini, depurar problemas de ambiente (Prisma 7, pnpm 11, build do Next no Docker) e revisar textos deste README. As decisões de produto e de domínio (quais retornos permitir, regras extras, qual problema automatizar, limiares, prioridades) são minhas e estão justificadas acima. Todo código gerado foi lido, ajustado e testado; os testes de domínio e de integração foram o critério para aceitar ou descartar sugestões.
+Usei IA (Claude, da Anthropic) em quase todo o projeto e prefiro dizer exatamente como, porque o volume de código entregue em dois dias não se explica de outro jeito.
+
+**O fluxo, em três papéis separados:**
+
+1. **Planejamento (um chat).** Comecei lendo o enunciado e escrevendo com a IA uma análise do case: o que é avaliado, o que a tabela de dados esconde (campos em branco, datas de 15/10/2026, a perdida sem motivo) e qual dos quatro problemas automatizar. Dessa análise saiu uma especificação **por camadas**, um documento por assunto: contexto e requisitos, arquitetura, domínio e regras, banco e seed, API, frontend, automação, testes, segurança, estrutura deste README, ordem de execução com checkpoints e critérios de aceite verificáveis. A spec fixa nomes de rotas, campos, códigos de erro, a matriz de transições, pesos e limiares, e os casos de teste por ID (`D-03`, `I-22`, `F-13`…) que aparecem nos `it(...)`.
+2. **Implementação (outro chat, um agente).** Um agente de código recebeu só a especificação e implementou fase a fase, em commits pequenos, rodando os testes a cada checkpoint e registrando num relatório cada desvio (por exemplo, TypeScript 5.9 em vez da 7 porque o `typescript-eslint` ainda não suporta a 7; Prisma 7 porque o 8 era RC) e cada decisão onde a spec era omissa.
+3. **Revisão (dez agentes independentes).** Dez revisores, cada um numa dimensão (domínio, banco, API, frontend, automação, testes, segurança, arquitetura, README, aderência ao enunciado), em modo só leitura, compararam o código com a spec e com o enunciado. Os achados viraram uma lista priorizada que foi corrigida numa segunda rodada, um commit por item.
+
+**O que a revisão pegou e foi corrigido** (exemplos reais): Enter num item do menu "⋯" do card também abria o detalhe, porque o evento de teclado do menu em portal borbulhava até o card; o seed apagava todo o histórico de follow-ups a cada restart quando deveria apagar só os abertos; a API aceitava o `x-request-id` enviado pelo cliente, o que permitiria forjar a correlação dos logs; o limiar "8 dias" estava escrito como número solto na tela de lista. A primeira versão desta seção também era genérica e foi reescrita.
+
+**O que é responsabilidade minha:** as regras de negócio e as decisões de produto deste README (quais retornos permitir e por quê, avanço sequencial, validade obrigatória, Forecast só com proposta válida, automatizar o follow-up, uma ação por oportunidade, os limiares e a precedência evento > proposta > contato). Elas foram discutidas com a IA no planejamento, mas fui eu que aprovei cada uma e sou eu que respondo por elas. [CONFIRMAR COM O AUTOR: quais dessas decisões partiram de você e quais você aceitou a partir de uma sugestão.]
+
+**Como validei:** os testes são o critério de aceite (domínio, integração contra Postgres real e componentes), o checklist de critérios de aceite foi conferido item a item contra o repositório, a subida do zero com `docker compose up --build` foi refeita num clone limpo, e conferi o comportamento na interface e por `curl`. [CONFIRMAR COM O AUTOR: quanto do código você leu linha a linha e quais partes revisou pessoalmente.]
 
 ---
 
