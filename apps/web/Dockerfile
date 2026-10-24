@@ -10,7 +10,7 @@ COPY packages/domain packages/domain
 COPY apps/web apps/web
 # Embutida no bundle do navegador: o browser chama a API em localhost:3333 (não "api:3333").
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL NEXT_TELEMETRY_DISABLED=1 NEXT_STANDALONE=1
 RUN pnpm --filter web build
 
 # Imagem final: só o servidor standalone do Next

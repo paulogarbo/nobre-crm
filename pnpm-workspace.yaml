@@ -9,3 +9,9 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+# Correções de segurança em dependências transitivas (pnpm audit): postcss usado pelo Next e
+# esbuild usado por tsup/vite em desenvolvimento.
+overrides:
+  postcss: ^8.5.23
+  esbuild: ^0.28.1
