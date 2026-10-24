@@ -491,6 +491,17 @@ describe('transições de etapa', () => {
     await esperarInalterada('OPP-2005', 'PERDIDA', 4);
   });
 
+  it('concorrência: PATCH entre a validação e a escrita (apagou a validade) força revalidar', async () => {
+    const apagarValidade = () =>
+      ctx.prisma.oportunidade.update({ where: { codigo: 'OPP-2003' }, data: { validadeProposta: null } });
+    const servico = transicoesComInterferencia(async (n) => n === 1 && apagarValidade());
+    await expect(servico.transicionar('OPP-2003', 'FORECAST' as never, null, executor())).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'PRE_CONDICAO_NAO_ATENDIDA',
+    });
+    await esperarInalterada('OPP-2003', 'FOLLOW_UP', 3);
+  });
+
   it('concorrência: etapa mudou de novo na segunda tentativa → 409 OPORTUNIDADE_ALTERADA', async () => {
     const servico = transicoesComInterferencia((n) => mudarEtapa(n === 1 ? 'FOLLOW_UP' : 'APRESENTACAO_ORCAMENTO'));
     await expect(

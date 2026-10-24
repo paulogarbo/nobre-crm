@@ -37,9 +37,10 @@ export class TransicoesService {
 
     const motivoLimpo = motivo?.trim() || null;
     const aplicou = await this.prisma.$transaction(async (tx) => {
-      // Concorrência otimista: só grava se a etapa ainda é a que foi validada.
+      // Concorrência otimista: só grava se a oportunidade não mudou desde a validação (etapa e
+      // updatedAt). Um PATCH no meio (ex.: apagou a validade) força revalidar contra o estado novo.
       const { count } = await tx.oportunidade.updateMany({
-        where: { id: op.id, etapa: de },
+        where: { id: op.id, etapa: de, updatedAt: op.updatedAt },
         data: { etapa: para, ...(para === Etapa.PERDIDA ? { motivoPerda: motivoLimpo } : {}) },
       });
       if (count === 0) return false;
@@ -50,7 +51,7 @@ export class TransicoesService {
     });
 
     if (!aplicou) {
-      // Outra requisição mudou a etapa entre a leitura e a escrita: revalida contra o estado novo.
+      // Outra requisição mudou a oportunidade entre a leitura e a escrita: revalida contra o estado novo.
       if (tentativa >= 1) throw erros.oportunidadeAlterada();
       return this.transicionar(idOuCodigo, para, motivo, executor, tentativa + 1);
     }
