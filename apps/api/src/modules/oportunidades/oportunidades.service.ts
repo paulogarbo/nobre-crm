@@ -32,7 +32,6 @@ export interface Executor {
 /** Chamado após cada alteração já commitada (recalcula o follow-up da oportunidade). */
 export type AoAlterarOportunidade = (oportunidadeId: string) => Promise<void>;
 
-const CODIGO_MINIMO = 2001;
 const TENTATIVAS_CODIGO = 3;
 
 function exigirContatoNaoFuturo(data: DataCivil | null | undefined, hoje: DataCivil, campo: string) {
@@ -116,8 +115,7 @@ export class OportunidadesService {
     for (let tentativa = 0; tentativa < TENTATIVAS_CODIGO; tentativa++) {
       try {
         const id = await this.prisma.$transaction(async (tx) => {
-          const maior = await repo.maiorNumeroDeCodigo(tx);
-          const codigo = `OPP-${Math.max(CODIGO_MINIMO, (maior ?? 0) + 1)}`;
+          const codigo = `OPP-${await repo.proximoNumeroDeCodigo(tx)}`;
           const agora = this.relogio.agora();
           // A criação também é um evento do histórico: "criada em Primeiro Contato".
           const op = await repo.inserir(
@@ -145,7 +143,8 @@ export class OportunidadesService {
         await this.aoAlterar(id);
         return this.detalhe(id);
       } catch (erro) {
-        if (ehCodigoDuplicado(erro) && tentativa < TENTATIVAS_CODIGO - 1) continue; // corrida no código
+        // código já usado fora da sequência (ex.: gravado à mão): a próxima tentativa pega o número seguinte
+        if (ehCodigoDuplicado(erro) && tentativa < TENTATIVAS_CODIGO - 1) continue;
         if (ehCodigoDuplicado(erro)) throw erros.codigoDuplicado();
         throw erro;
       }

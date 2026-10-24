@@ -1,5 +1,6 @@
 import type { PrismaClient } from '../src/generated/prisma/client';
 import { paraDataBancoOuNull } from '../src/lib/datas-banco';
+import { oportunidadesRepository } from '../src/modules/oportunidades/oportunidades.repository';
 import { OPORTUNIDADES, VENDEDORES } from './seed-data';
 
 export interface ResultadoSeed {
@@ -83,6 +84,9 @@ export async function executarSeed(prisma: PrismaClient): Promise<ResultadoSeed>
       resultado.transicoes += o.transicoes.length;
       resultado.oportunidades++;
     }
+
+    // Os códigos do case são gravados explicitamente: a sequência continua depois do maior.
+    await oportunidadesRepository.sincronizarSequenciaDeCodigo(tx);
   });
 
   return resultado;

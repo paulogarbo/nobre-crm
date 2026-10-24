@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { executarSeed } from '../prisma/seed-runner';
 import type { PrismaClient } from '../src/lib/prisma';
 import { TransicoesService } from '../src/modules/transicoes/transicoes.service';
 import { chamar, criarContexto, resetarComSeed, zerarBanco, type Contexto, type Vendedores } from './helpers';
@@ -247,6 +248,25 @@ describe('criação e edição', () => {
     });
     expect(outra.body).toMatchObject({ codigo: 'OPP-2009', vendedor: { nome: 'Ana' }, valorEstimado: null, itens: [] });
     expect(outra.body.historico[0].vendedor.nome).toBe('Bruno');
+  });
+
+  it('código OPP vem da sequência: criações simultâneas recebem números distintos e seguidos', async () => {
+    const respostas = await Promise.all(
+      [1, 2, 3, 4, 5].map((n) =>
+        chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa: `Empresa ${n}` }, vendedorId: v.Ana }),
+      ),
+    );
+    expect(respostas.map((r) => r.status)).toEqual([201, 201, 201, 201, 201]);
+    expect(respostas.map((r) => r.body.codigo).sort()).toEqual(['OPP-2008', 'OPP-2009', 'OPP-2010', 'OPP-2011', 'OPP-2012']);
+  });
+
+  it('seed reaplicado não faz a sequência voltar; código gravado fora dela é pulado', async () => {
+    expect((await chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa: 'Primeira' }, vendedorId: v.Ana })).body.codigo).toBe('OPP-2008');
+    await executarSeed(ctx.prisma); // restart da API
+    expect((await chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa: 'Segunda' }, vendedorId: v.Ana })).body.codigo).toBe('OPP-2009');
+    // alguém gravou OPP-2010 direto no banco: a criação esbarra no único e tenta o número seguinte
+    await ctx.prisma.oportunidade.create({ data: { codigo: 'OPP-2010', empresa: 'Manual', vendedorId: v.Ana } });
+    expect((await chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa: 'Terceira' }, vendedorId: v.Ana })).body.codigo).toBe('OPP-2011');
   });
 
   it('I-16 ultimoContato futuro ou data inexistente → 400 VALIDACAO', async () => {

@@ -315,7 +315,7 @@ Demais códigos: `400 VALIDACAO` (corpo, query ou parâmetros inválidos, com `d
 | `GET /oportunidades` | lista com sinais e próxima ação. Query: `q` (código, empresa ou item), `etapa` (uma ou várias separadas por vírgula), `vendedorId`, `atencao=true`, `severidade=CRITICA\|ALTA\|MEDIA\|BAIXA` (mínima), `incluirFinais`, `ordem=prioridade\|valor\|ultimoContato\|codigo` |
 | `GET /oportunidades/:id` | detalhe por uuid **ou** código (`OPP-2003`), com histórico e follow-ups |
 | `GET /oportunidades/:id/historico` | só a timeline |
-| `POST /oportunidades` | cria em Primeiro Contato (`OPP-{maior+1}`), com a linha "criada" no histórico |
+| `POST /oportunidades` | cria em Primeiro Contato (`OPP-{n}`, com `n` de uma SEQUENCE do banco), com a linha "criada" no histórico |
 | `PATCH /oportunidades/:id` | edita; `itens` substitui a lista; em etapa final só aceita `observacoes` |
 | `POST /oportunidades/:id/contatos` | "registrei contato hoje" (com observação opcional) |
 | `POST /oportunidades/:id/transicoes` | muda de etapa (`{ para, motivo? }`) |

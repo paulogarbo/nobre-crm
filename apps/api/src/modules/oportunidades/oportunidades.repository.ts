@@ -136,12 +136,22 @@ export const oportunidadesRepository = {
     return prisma.oportunidade.update({ where: { id }, data: { observacoes } });
   },
 
-  /** Maior número de código existente (OPP-2007 → 2007), ou null se não houver nenhum. */
-  async maiorNumeroDeCodigo(prisma: Cliente): Promise<number | null> {
-    const linhas = await prisma.$queryRaw<Array<{ maior: number | null }>>`
-      SELECT MAX(CAST(SUBSTRING(codigo FROM 5) AS INTEGER)) AS maior
-      FROM oportunidades WHERE codigo ~ '^OPP-[0-9]+$'`;
-    const maior = linhas[0]?.maior;
-    return maior === null || maior === undefined ? null : Number(maior);
+  /** Próximo número do código OPP-{n}, da sequência do banco (atômico entre transações simultâneas). */
+  async proximoNumeroDeCodigo(prisma: Cliente): Promise<number> {
+    const linhas = await prisma.$queryRaw<Array<{ n: number }>>`SELECT nextval('oportunidades_codigo_seq')::int AS n`;
+    return Number(linhas[0]!.n);
+  },
+
+  /**
+   * Alinha a sequência ao maior código existente (o seed grava OPP-2001…2007 com código explícito).
+   * Nunca volta: se a sequência já está à frente, fica onde está.
+   */
+  async sincronizarSequenciaDeCodigo(prisma: Cliente): Promise<void> {
+    await prisma.$executeRaw`
+      SELECT setval('oportunidades_codigo_seq', GREATEST(
+        2000,
+        (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM oportunidades_codigo_seq),
+        COALESCE((SELECT MAX(CAST(SUBSTRING(codigo FROM 5) AS INTEGER)) FROM oportunidades WHERE codigo ~ '^OPP-[0-9]+$'), 2000)
+      ))`;
   },
 };
