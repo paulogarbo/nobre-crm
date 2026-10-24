@@ -292,7 +292,7 @@ Toda resposta de erro tem o formato `{ code, message, details? }`. As violaçõe
 }
 ```
 
-Demais códigos: `400 VALIDACAO` (corpo, query ou parâmetros inválidos, com `details.issues`), `401 IDENTIDADE_AUSENTE`/`IDENTIDADE_INVALIDA`, `404 OPORTUNIDADE_NAO_ENCONTRADA`/`FOLLOW_UP_NAO_ENCONTRADO`/`VENDEDOR_NAO_ENCONTRADO`/`ROTA_NAO_ENCONTRADA`/`REGISTRO_NAO_ENCONTRADO`, `409 OPORTUNIDADE_FINALIZADA`/`FOLLOW_UP_JA_ENCERRADO`/`OPORTUNIDADE_ALTERADA`/`REFERENCIA_INVALIDA` (os dois últimos de cada grupo aparecem só em corrida: o registro ou a referência sumiu entre a leitura e a escrita), `429 MUITAS_REQUISICOES`, `500 ERRO_INTERNO` (sem stack; o detalhe fica no log, correlacionado pelo header `x-request-id`).
+Demais códigos: `400 VALIDACAO` (corpo, query ou parâmetros inválidos, com `details.issues`), `401 IDENTIDADE_AUSENTE`/`IDENTIDADE_INVALIDA`, `404 OPORTUNIDADE_NAO_ENCONTRADA`/`FOLLOW_UP_NAO_ENCONTRADO`/`VENDEDOR_NAO_ENCONTRADO`/`ROTA_NAO_ENCONTRADA`/`REGISTRO_NAO_ENCONTRADO`, `409 OPORTUNIDADE_FINALIZADA`/`FOLLOW_UP_JA_ENCERRADO`/`OPORTUNIDADE_ALTERADA`/`REFERENCIA_INVALIDA` (`REGISTRO_NAO_ENCONTRADO`, `OPORTUNIDADE_ALTERADA` e `REFERENCIA_INVALIDA` só aparecem em corrida: algo mudou ou sumiu entre a leitura e a escrita), `429 MUITAS_REQUISICOES`, `500 ERRO_INTERNO` (sem stack; o detalhe fica no log, correlacionado pelo header `x-request-id`).
 
 | Rota | O que faz |
 |---|---|
