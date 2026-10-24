@@ -153,15 +153,20 @@ flowchart LR
   A["apps/api<br/>Fastify 5 · zod<br/>node-cron"]
   P[("PostgreSQL 16")]
   D["packages/domain<br/>regras puras, zero I/O"]
+  C["packages/contracts<br/>schemas zod da API"]
   W -- "HTTP/JSON<br/>x-vendedor-id" --> A
   A -- Prisma 7 --> P
   W -. importa .-> D
   A -. importa .-> D
+  W -. tipos .-> C
+  A -. valida e serializa .-> C
+  C -. enums .-> D
 ```
 
-Monorepo **pnpm workspaces** com três pacotes:
+Monorepo **pnpm workspaces** com quatro pacotes (duas aplicações e duas bibliotecas):
 
 - **Por que monorepo:** o domínio é compartilhado pela API e pela web sem publicar pacote; um `pnpm test` testa tudo; um commit muda regra, API e tela juntos.
+- **Por que um pacote de contrato:** os schemas zod de entrada e saída de cada rota ficam em `packages/contracts`. A API valida e serializa com eles; a web usa os tipos derivados (`z.infer`). Mudar um campo da resposta quebra a compilação da web em vez de divergir em silêncio, sem manter uma cópia dos DTOs à mão.
 - **Por que um domínio puro separado:** as regras (transições, sinais, próxima ação) são o coração do case. Sem I/O e sem relógio (o "hoje" é parâmetro), elas são testadas isoladamente, de forma determinística, e a mesma função roda no servidor (fonte da verdade) e no navegador (só para explicar, durante o arrasto, por que uma coluna está bloqueada).
 - **Fastify:** rápido, plugins oficiais (CORS, Helmet, rate limit), `inject()` para testar sem porta e validação/serialização por schema (zod via `fastify-type-provider-zod`).
 - **Prisma:** schema declarativo, migrations versionadas, consultas parametrizadas e tipadas.
@@ -187,9 +192,10 @@ apps/
     src/app/           rotas: / (Kanban), /oportunidades, /oportunidades/[id], /hoje
     src/components/    kanban, oportunidade, atencao, follow-ups, estados, layout, ui
     src/hooks/         consultas e mutações (TanStack Query)
-    src/lib/           cliente HTTP, tipos dos DTOs, formatadores, identidade
+    src/lib/           cliente HTTP, formatadores, identidade (tipos dos DTOs vêm de contracts)
 packages/
   domain/src/          etapas, maquina-de-estados, atencao, follow-up, datas, erros
+  contracts/src/       schemas zod das rotas (entrada e saída) e tipos derivados
 ```
 
 Dentro de cada módulo da API, as camadas têm uma responsabilidade só: **routes** (HTTP, schema zod, identidade), **service** (orquestração: chama o domínio, abre a transação, dispara o recálculo após o commit) e **repository** (toda consulta e escrita do Prisma, recebendo o cliente ou a transação). Nenhum service fala com o Prisma direto, e nenhum repository decide regra.

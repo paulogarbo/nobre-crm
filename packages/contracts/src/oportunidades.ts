@@ -1,15 +1,9 @@
-import { Etapa, SEVERIDADES, TipoFollowUp, TipoSinal, ehDataCivilValida, ehEtapa } from '@nobre/domain';
+import { Etapa, SEVERIDADES, TipoFollowUp, TipoSinal, ehEtapa } from '@nobre/domain';
 import { z } from 'zod';
+import { dataCivil, etapa, prioridade, severidade, statusFollowUp, vazioParaNull, vendedorRef } from './comum';
 
-// ---------- blocos reutilizáveis ----------
+// ---------- entrada ----------
 
-export const dataCivil = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'use o formato YYYY-MM-DD')
-  .refine(ehDataCivilValida, 'data inexistente');
-
-/** Campos de texto opcionais: string vazia vira `null` ("não informado"). */
-const vazioParaNull = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? null : v);
 const textoOpcional = (max: number) => z.preprocess(vazioParaNull, z.string().trim().max(max).nullable().optional());
 
 const itemEntrada = z.strictObject({
@@ -34,17 +28,15 @@ const camposOportunidade = {
 
 const empresa = z.string().trim().min(2, 'informe o nome da empresa (mínimo 2 caracteres)').max(200);
 
-// ---------- entrada ----------
-
 export const corpoCriar = z.strictObject({ empresa, ...camposOportunidade });
-export type CorpoCriar = z.infer<typeof corpoCriar>;
+export type CorpoCriar = z.output<typeof corpoCriar>;
 
 /** PATCH: qualquer subconjunto dos campos do POST; `null` limpa o campo; `itens` substitui a lista. */
 export const corpoEditar = z
   .strictObject({ empresa: empresa.optional(), ...camposOportunidade })
   // PATCH vazio não altera nada; recusar evita um 200 enganoso (e um recálculo à toa).
   .refine((corpo) => Object.keys(corpo).length > 0, 'Informe ao menos um campo para alterar.');
-export type CorpoEditar = z.infer<typeof corpoEditar>;
+export type CorpoEditar = z.output<typeof corpoEditar>;
 
 export const corpoTransicao = z.strictObject({
   para: z.enum(Etapa, 'etapa de destino inválida'),
@@ -58,14 +50,12 @@ export const corpoContato = z
   })
   .nullish(); // sem corpo, o Fastify entrega `null`
 
-export const paramsId = z.object({ id: z.string().trim().min(1).max(100) });
-
 const booleanoTexto = z.enum(['true', 'false']).transform((v) => v === 'true');
 
 export const ORDENS = ['prioridade', 'valor', 'ultimoContato', 'codigo'] as const;
 export type Ordem = (typeof ORDENS)[number];
 
-export const queryListar = z.object({
+export const queryListarOportunidades = z.object({
   q: z.preprocess(vazioParaNull, z.string().trim().min(1).max(100).nullable().optional()),
   etapa: z
     .string()
@@ -79,15 +69,9 @@ export const queryListar = z.object({
   incluirFinais: booleanoTexto.default(true),
   ordem: z.enum(ORDENS).default('prioridade'),
 });
-export type QueryListar = z.infer<typeof queryListar>;
+export type QueryListarOportunidades = z.infer<typeof queryListarOportunidades>;
 
-// ---------- respostas (a API só devolve o que está declarado aqui) ----------
-
-const etapa = z.enum(Etapa);
-const severidade = z.enum(SEVERIDADES);
-const prioridade = z.enum(['CRITICA', 'ALTA', 'MEDIA']);
-const statusFollowUp = z.enum(['ABERTO', 'CONCLUIDO', 'RESOLVIDO', 'SUBSTITUIDO']);
-const vendedorRef = z.object({ id: z.string(), nome: z.string() });
+// ---------- saída (a API só devolve o que está declarado aqui) ----------
 
 export const itemSaida = z.object({
   id: z.string(),
@@ -95,12 +79,26 @@ export const itemSaida = z.object({
   quantidade: z.number(),
   valorUnitario: z.number().nullable(),
 });
+export type ItemDTO = z.infer<typeof itemSaida>;
 
 export const transicaoPermitidaSaida = z.object({
   para: etapa,
   exigeMotivo: z.boolean(),
   tipo: z.enum(['avanco', 'retorno', 'perda']),
 });
+export type TransicaoPermitidaDTO = z.infer<typeof transicaoPermitidaSaida>;
+
+export const sinalSaida = z.object({ tipo: z.enum(TipoSinal), severidade, mensagem: z.string() });
+export type SinalDTO = z.infer<typeof sinalSaida>;
+
+export const proximaAcaoSaida = z.object({
+  id: z.string(),
+  tipo: z.enum(TipoFollowUp),
+  prioridade,
+  titulo: z.string(),
+  venceEm: z.string(),
+});
+export type ProximaAcaoDTO = z.infer<typeof proximaAcaoSaida>;
 
 export const oportunidadeResumo = z.object({
   id: z.string(),
@@ -118,17 +116,9 @@ export const oportunidadeResumo = z.object({
   atencao: z.object({
     severidade: severidade.nullable(),
     score: z.number(),
-    sinais: z.array(z.object({ tipo: z.enum(TipoSinal), severidade, mensagem: z.string() })),
+    sinais: z.array(sinalSaida),
   }),
-  proximaAcao: z
-    .object({
-      id: z.string(),
-      tipo: z.enum(TipoFollowUp),
-      prioridade,
-      titulo: z.string(),
-      venceEm: z.string(),
-    })
-    .nullable(),
+  proximaAcao: proximaAcaoSaida.nullable(),
   transicoesPermitidas: z.array(transicaoPermitidaSaida),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -175,5 +165,6 @@ export const respostaListagem = z.object({
   total: z.number(),
   itens: z.array(oportunidadeResumo),
 });
+export type ListagemDTO = z.infer<typeof respostaListagem>;
 
 export const respostaHistorico = z.object({ itens: z.array(historicoSaida) });

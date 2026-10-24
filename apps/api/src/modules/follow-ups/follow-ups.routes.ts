@@ -5,11 +5,11 @@ import { vendedorDaRequisicao, type Identidade } from '../../plugins/identidade'
 import {
   corpoConcluir,
   paramsId,
-  queryListar,
+  queryListarFollowUps,
   respostaConcluir,
-  respostaListar,
+  respostaListarFollowUps,
   respostaRecalcular,
-} from './follow-ups.schemas';
+} from '@nobre/contracts';
 import type { FollowUpsService } from './follow-ups.service';
 
 export async function rotasFollowUps(
@@ -20,7 +20,7 @@ export async function rotasFollowUps(
 
   r.get(
     '/follow-ups',
-    { preValidation: identidade.opcional, schema: { querystring: queryListar, response: { 200: respostaListar } } },
+    { preValidation: identidade.opcional, schema: { querystring: queryListarFollowUps, response: { 200: respostaListarFollowUps } } },
     (req) => {
       const vendedorId = req.query.vendedorId ?? req.vendedor?.id;
       if (!vendedorId) {

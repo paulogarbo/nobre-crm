@@ -5,6 +5,7 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/domain/package.json packages/domain/
+COPY packages/contracts/package.json packages/contracts/
 # o postinstall (prisma generate) precisa do schema e da config
 COPY apps/api/prisma apps/api/prisma
 COPY apps/api/prisma.config.ts apps/api/
@@ -13,6 +14,7 @@ COPY apps/api/prisma.config.ts apps/api/
 FROM base AS build
 RUN pnpm install --frozen-lockfile --filter api...
 COPY packages/domain packages/domain
+COPY packages/contracts packages/contracts
 COPY apps/api apps/api
 RUN pnpm --filter api exec prisma generate && pnpm --filter api build
 
@@ -21,6 +23,7 @@ FROM base AS runtime
 ENV NODE_ENV=production PRISMA_HIDE_UPDATE_MESSAGE=1
 RUN pnpm install --frozen-lockfile --prod --filter api... && pnpm store prune
 COPY packages/domain packages/domain
+COPY packages/contracts packages/contracts
 COPY apps/api apps/api
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/api/src/generated apps/api/src/generated

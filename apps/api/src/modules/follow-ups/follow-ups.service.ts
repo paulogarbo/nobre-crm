@@ -1,3 +1,4 @@
+import type { FollowUpDTO, StatusFollowUp } from '@nobre/contracts';
 import { ROTULOS, diasEntre, pesoPrioridade, proximaAcao, type DataCivil, type Prioridade } from '@nobre/domain';
 import { Prisma, type FollowUp } from '../../generated/prisma/client';
 import type { Relogio } from '../../lib/clock';
@@ -8,7 +9,6 @@ import { followUpDaOportunidadeDTO, paraDominio } from '../oportunidades/oportun
 import type { AoAlterarOportunidade, Executor, OportunidadesService } from '../oportunidades/oportunidades.service';
 import { vendedoresRepository } from '../vendedores/vendedores.repository';
 import { followUpsRepository as repo, type FollowUpComOportunidade } from './follow-ups.repository';
-import type { FollowUpDTO, StatusFollowUp } from './follow-ups.schemas';
 
 export interface ResultadoRecalculo {
   criados: number;

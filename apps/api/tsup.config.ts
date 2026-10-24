@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
 
-// Empacota o servidor num único arquivo ESM. O domínio (TypeScript puro do workspace) e o client
+// Empacota o servidor num único arquivo ESM. O domínio e o contrato (TypeScript puro do workspace) e o client
 // gerado pelo Prisma entram no bundle; as dependências do node_modules ficam externas.
 export default defineConfig({
   entry: ['src/server.ts'],
@@ -11,5 +11,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   splitting: false,
-  noExternal: ['@nobre/domain'],
+  noExternal: ['@nobre/domain', '@nobre/contracts'],
 });

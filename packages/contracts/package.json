@@ -1,0 +1,25 @@
+{
+  "name": "@nobre/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Contrato HTTP da API (schemas zod de entrada e saída) e os tipos derivados, usados pela API e pela web.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@nobre/domain": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "5.0.5"
+  }
+}

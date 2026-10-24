@@ -5,8 +5,10 @@ WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/domain/package.json packages/domain/
+COPY packages/contracts/package.json packages/contracts/
 RUN pnpm install --frozen-lockfile --filter web...
 COPY packages/domain packages/domain
+COPY packages/contracts packages/contracts
 COPY apps/web apps/web
 # Embutida no bundle do navegador: o browser chama a API em localhost:3333 (não "api:3333").
 ARG NEXT_PUBLIC_API_URL=http://localhost:3333

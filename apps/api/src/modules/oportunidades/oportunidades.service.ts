@@ -1,3 +1,11 @@
+import type {
+  CorpoCriar,
+  CorpoEditar,
+  OportunidadeDetalheDTO,
+  OportunidadeResumoDTO,
+  Ordem,
+  QueryListarOportunidades,
+} from '@nobre/contracts';
 import {
   atingeSeveridade,
   compararCodigo,
@@ -15,14 +23,6 @@ import type { PrismaClient } from '../../lib/prisma';
 import { paraDetalhe, paraResumo, historicoDTO } from './oportunidades.mapper';
 import { vendedoresRepository } from '../vendedores/vendedores.repository';
 import { oportunidadesRepository as repo } from './oportunidades.repository';
-import type {
-  CorpoCriar,
-  CorpoEditar,
-  OportunidadeDetalheDTO,
-  OportunidadeResumoDTO,
-  Ordem,
-  QueryListar,
-} from './oportunidades.schemas';
 
 export interface Executor {
   id: string;
@@ -75,7 +75,7 @@ export class OportunidadesService {
     private readonly aoAlterar: AoAlterarOportunidade,
   ) {}
 
-  async listar(query: QueryListar) {
+  async listar(query: QueryListarOportunidades) {
     const hoje = this.relogio.hoje();
     const registros = await repo.listar(this.prisma, {
       q: query.q,

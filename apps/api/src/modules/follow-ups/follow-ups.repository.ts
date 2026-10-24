@@ -2,7 +2,7 @@ import { ETAPAS_FINAIS, type DataCivil, type ProximaAcao } from '@nobre/domain';
 import type { Prisma } from '../../generated/prisma/client';
 import { paraDataBanco } from '../../lib/datas-banco';
 import type { PrismaClient } from '../../lib/prisma';
-import type { StatusFollowUp } from './follow-ups.schemas';
+import type { StatusFollowUp } from '@nobre/contracts';
 
 type Cliente = PrismaClient | Prisma.TransactionClient;
 

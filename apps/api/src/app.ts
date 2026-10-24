@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import { respostaHealth } from '@nobre/contracts';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { serializerCompiler, validatorCompiler, type ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
@@ -99,7 +100,7 @@ export async function buildApp({ env, prisma, relogio = criarRelogio(env.REFEREN
     {
       schema: {
         response: {
-          200: z.object({ status: z.literal('ok'), hoje: z.string(), referenciaFixa: z.boolean(), versao: z.string() }),
+          200: respostaHealth,
         },
       },
     },

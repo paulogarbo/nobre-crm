@@ -9,10 +9,10 @@ import {
   corpoTransicao,
   oportunidadeDetalhe,
   paramsId,
-  queryListar,
+  queryListarOportunidades,
   respostaHistorico,
   respostaListagem,
-} from './oportunidades.schemas';
+} from '@nobre/contracts';
 import type { OportunidadesService } from './oportunidades.service';
 
 interface Deps {
@@ -24,7 +24,7 @@ interface Deps {
 export async function rotasOportunidades(app: FastifyInstance, { identidade, oportunidades, transicoes }: Deps) {
   const r = app.withTypeProvider<ZodTypeProvider>();
 
-  r.get('/oportunidades', { schema: { querystring: queryListar, response: { 200: respostaListagem } } }, (req) =>
+  r.get('/oportunidades', { schema: { querystring: queryListarOportunidades, response: { 200: respostaListagem } } }, (req) =>
     oportunidades.listar(req.query),
   );
 

@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Como o domínio, o contrato não depende de Node nem de navegador.
+    "types": []
+  },
+  "include": ["src"]
+}

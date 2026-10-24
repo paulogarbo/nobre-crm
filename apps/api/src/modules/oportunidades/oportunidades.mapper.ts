@@ -1,3 +1,9 @@
+import type {
+  FollowUpDaOportunidadeDTO,
+  HistoricoDTO,
+  OportunidadeDetalheDTO,
+  OportunidadeResumoDTO,
+} from '@nobre/contracts';
 import {
   ROTULOS,
   avaliarAtencao,
@@ -10,12 +16,6 @@ import {
 import type { FollowUp, ItemBrinde, Oportunidade, Prisma } from '../../generated/prisma/client';
 import { deDataBanco, deDataBancoOuNull } from '../../lib/datas-banco';
 import type { OportunidadeComDetalhe, OportunidadeComResumo } from './oportunidades.repository';
-import type {
-  FollowUpDaOportunidadeDTO,
-  HistoricoDTO,
-  OportunidadeDetalheDTO,
-  OportunidadeResumoDTO,
-} from './oportunidades.schemas';
 
 const numeroOuNull = (d: Prisma.Decimal | null) => (d === null ? null : Number(d));
 
