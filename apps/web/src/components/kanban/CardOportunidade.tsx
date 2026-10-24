@@ -42,7 +42,13 @@ export function CardOportunidade({ op, hoje, overlay = false }: Props) {
       aria-label={`${op.codigo}, ${op.empresa}${severidade ? `, atenção ${ESTILO_SEVERIDADE[severidade].rotulo.toLowerCase()}` : ''}. Enter abre o detalhe; espaço pega para mover.`}
       onClick={() => abrirDetalhe(op.id)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') abrirDetalhe(op.id);
+        if (e.key === 'Enter') {
+          // sem o preventDefault, o Enter "vaza" para o botão que recebe foco no painel aberto
+          e.preventDefault();
+          abrirDetalhe(op.id);
+        }
+        // encadeia com o listener do dnd-kit (espaço pega/solta o card)
+        else if (!overlay) listeners?.onKeyDown?.(e);
       }}
       className={cn(
         'group relative cursor-pointer rounded-lg border border-slate-200 border-l-[3px] bg-white p-3 shadow-sm transition-shadow hover:shadow-md',
