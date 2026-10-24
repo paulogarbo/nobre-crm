@@ -26,6 +26,13 @@ async function contarHistorico(codigo: string) {
   return ctx.prisma.transicaoEtapa.count({ where: { oportunidade: { codigo } } });
 }
 
+/** Prova que uma requisição recusada não alterou nada: mesma etapa e nenhuma linha nova no histórico. */
+async function esperarInalterada(codigo: string, etapa: string, nHistorico: number) {
+  const op = await ctx.prisma.oportunidade.findUniqueOrThrow({ where: { codigo } });
+  expect(op.etapa, `etapa de ${codigo}`).toBe(etapa);
+  expect(await contarHistorico(codigo), `histórico de ${codigo}`).toBe(nHistorico);
+}
+
 describe('metadados', () => {
   it('I-01 GET /health usa a data de referência', async () => {
     const res = await get('/health');
@@ -313,6 +320,7 @@ describe('transições de etapa', () => {
     const depois = await transicionar('OPP-2005', v.Bruno, { para: 'FORECAST', motivo: 'Cliente desistiu' });
     expect(depois.status).toBe(422);
     expect(depois.body.code).toBe('ETAPA_FINAL');
+    await esperarInalterada('OPP-2005', 'FECHAMENTO', 5);
   });
 
   it('I-22 OPP-2003 Follow-up → Fechamento: 422 e nada muda', async () => {
@@ -325,6 +333,7 @@ describe('transições de etapa', () => {
     });
     expect((await get('/oportunidades/OPP-2003')).body.etapa).toBe('FOLLOW_UP');
     expect(await contarHistorico('OPP-2003')).toBe(antes);
+    await esperarInalterada('OPP-2003', 'FOLLOW_UP', 3);
   });
 
   it('I-23 Perdida sem motivo → 422 MOTIVO_PERDA_OBRIGATORIO', async () => {
@@ -335,6 +344,7 @@ describe('transições de etapa', () => {
     }
     expect((await get('/oportunidades/OPP-2002')).body.etapa).toBe('APRESENTACAO_ORCAMENTO');
     expect(await contarHistorico('OPP-2002')).toBe(2);
+    await esperarInalterada('OPP-2002', 'APRESENTACAO_ORCAMENTO', 2);
   });
 
   it('I-24 Perdida com motivo grava motivoPerda e histórico', async () => {
@@ -359,6 +369,7 @@ describe('transições de etapa', () => {
       message: 'Para apresentar o orçamento, informe: validade da proposta.',
       details: { faltando: ['validadeProposta'] },
     });
+    await esperarInalterada('OPP-2001', 'PRIMEIRO_CONTATO', 1);
   });
 
   it('I-26 PATCH validade e depois → Apresentação: 200', async () => {
@@ -378,12 +389,14 @@ describe('transições de etapa', () => {
     expect(res.status).toBe(422);
     expect(res.body.code).toBe('PROPOSTA_VENCIDA');
     expect(res.body.message).toContain('10/10/2026');
+    await esperarInalterada('OPP-2004', 'FOLLOW_UP', 3);
   });
 
   it('I-28 retorno exige motivo; com motivo grava no histórico', async () => {
     const sem = await transicionar('OPP-2003', v.Ana, { para: 'APRESENTACAO_ORCAMENTO' });
     expect(sem.status).toBe(422);
     expect(sem.body.code).toBe('MOTIVO_RETORNO_OBRIGATORIO');
+    await esperarInalterada('OPP-2003', 'FOLLOW_UP', 3);
     const com = await transicionar('OPP-2003', v.Ana, {
       para: 'APRESENTACAO_ORCAMENTO',
       motivo: 'Cliente pediu revisão de quantidade',
@@ -400,9 +413,11 @@ describe('transições de etapa', () => {
     const retorno = await transicionar('OPP-2003', v.Ana, { para: 'PRIMEIRO_CONTATO', motivo: 'Dados errados' });
     expect(retorno.status).toBe(422);
     expect(retorno.body.code).toBe('RETORNO_NAO_PERMITIDO');
+    await esperarInalterada('OPP-2003', 'FOLLOW_UP', 3);
     const salto = await transicionar('OPP-2001', v.Ana, { para: 'FOLLOW_UP' });
     expect(salto.status).toBe(422);
     expect(salto.body).toMatchObject({ code: 'SALTO_DE_ETAPA', details: { proxima: 'APRESENTACAO_ORCAMENTO' } });
+    await esperarInalterada('OPP-2001', 'PRIMEIRO_CONTATO', 1);
   });
 
   it('I-29 oportunidade final não muda de etapa', async () => {
@@ -411,6 +426,7 @@ describe('transições de etapa', () => {
       expect(res.status).toBe(422);
       expect(res.body.code).toBe('ETAPA_FINAL');
     }
+    await esperarInalterada('OPP-2006', 'FECHAMENTO', 5);
   });
 
   it('I-29b etapa inválida, oportunidade inexistente e sem identidade', async () => {
