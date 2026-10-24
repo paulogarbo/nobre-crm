@@ -79,6 +79,40 @@ describe('motor de follow-up via API', () => {
     });
   });
 
+  it('GET /follow-ups ordena por prioridade, vencimento e valor; filtra por ate e status', async () => {
+    await recalcular(); // Ana: OPP-2003 (crítica)
+    const [critica] = await abertosDe('OPP-2003');
+    await ctx.prisma.followUp.update({ where: { id: critica!.id }, data: { venceEm: new Date(Date.UTC(2026, 9, 13)) } });
+    // dois leads sem contato da Ana (ação ALTA de SLA, vence hoje), o de menor valor criado primeiro
+    for (const [empresa, valorEstimado] of [['Lead Pequeno', 1000], ['Lead Grande', 50000]] as const) {
+      const res = await chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa, valorEstimado }, vendedorId: v.Ana });
+      expect(res.body.proximaAcao).toMatchObject({ prioridade: 'ALTA' });
+    }
+
+    const lista = await doVendedor(v.Ana);
+    expect(lista.body.total).toBe(3);
+    expect(lista.body.itens.map((f: any) => `${f.oportunidade.empresa}:${f.prioridade}:${f.atrasado}`)).toEqual([
+      'Clínica Vida:CRITICA:true',
+      'Lead Grande:ALTA:false',
+      'Lead Pequeno:ALTA:false',
+    ]);
+
+    // ate: só o que vence até a data (a crítica venceu em 13/10)
+    const ate = await chamar(ctx.app, 'GET', `/follow-ups?vendedorId=${v.Ana}&ate=2026-10-14`);
+    expect(ate.body.itens.map((f: any) => f.oportunidade.codigo)).toEqual(['OPP-2003']);
+
+    // status: concluídos não aparecem na lista padrão (ABERTO) e aparecem com status=CONCLUIDO
+    await chamar(ctx.app, 'POST', `/follow-ups/${lista.body.itens[2].id}/concluir`, { body: {}, vendedorId: v.Ana });
+    const concluidos = await chamar(ctx.app, 'GET', `/follow-ups?vendedorId=${v.Ana}&status=CONCLUIDO`);
+    expect(concluidos.body.itens.map((f: any) => `${f.oportunidade.empresa}:${f.status}:${f.atrasado}`)).toEqual([
+      'Lead Pequeno:CONCLUIDO:false',
+    ]);
+    expect((await doVendedor(v.Ana)).body.itens.map((f: any) => f.oportunidade.empresa)).toEqual([
+      'Clínica Vida',
+      'Lead Grande',
+    ]);
+  });
+
   it('I-34 sem header e sem vendedorId → 400; vendedor inexistente → 404', async () => {
     const res = await chamar(ctx.app, 'GET', '/follow-ups');
     expect(res.status).toBe(400);
