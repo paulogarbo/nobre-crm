@@ -45,7 +45,7 @@ Seed concluído: 3 vendedores, 7 oportunidades, 7 itens, 22 transições.
 
 O seed é idempotente: subir de novo não duplica nada. Para zerar tudo: `docker compose down -v`.
 
-> **Atenção na demonstração:** reiniciar a API (`docker compose restart api` ou um novo `up`) **restaura as 7 oportunidades do case** ao estado original, desfazendo o que foi feito nelas pela interface. As oportunidades criadas pela interface (OPP-2008 em diante) são preservadas.
+> **Atenção na demonstração:** reiniciar a API (`docker compose restart api` ou um novo `up`) **restaura as 7 oportunidades do case** ao estado original, desfazendo o que foi feito nelas pela interface. As oportunidades criadas pela interface (OPP-2008 em diante) são preservadas, assim como o histórico de follow-ups já encerrados (só as ações abertas são recriadas).
 
 | Serviço | URL / porta | Observação |
 |---|---|---|

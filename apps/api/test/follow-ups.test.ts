@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { executarSeed } from '../prisma/seed-runner';
 import { iniciarJobFollowUps } from '../src/modules/follow-ups/follow-ups.job';
 import { chamar, criarContexto, resetarComSeed, type Contexto, type Vendedores } from './helpers';
 
@@ -222,6 +223,22 @@ describe('motor de follow-up via API', () => {
     expect(r.body).toMatchObject({ criados: 0, mantidos: 3 });
     const carla = await doVendedor(v.Carla);
     expect(carla.body.itens[0]).toMatchObject({ id: f!.id, venceEm: '2026-10-13', atrasado: true });
+  });
+});
+
+describe('seed reaplicado (restart da API)', () => {
+  it('apaga só os follow-ups abertos e preserva o histórico dos encerrados', async () => {
+    await recalcular();
+    const [original] = await abertosDe('OPP-2002');
+    await chamar(ctx.app, 'POST', `/follow-ups/${original!.id}/concluir`, { body: {}, vendedorId: v.Bruno });
+    expect((await todosDe('OPP-2002')).map((f) => f.status)).toEqual(['CONCLUIDO', 'ABERTO']);
+
+    await executarSeed(ctx.prisma);
+
+    expect((await todosDe('OPP-2002')).map((f) => `${f.id === original!.id}:${f.status}`)).toEqual(['true:CONCLUIDO']);
+    expect(await ctx.prisma.followUp.count({ where: { status: 'ABERTO' } })).toBe(0);
+    // o boot recria as ações do dia sobre o estado restaurado
+    expect((await recalcular()).body).toMatchObject({ criados: 3 });
   });
 });
 

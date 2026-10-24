@@ -10,9 +10,9 @@ export interface ResultadoSeed {
 }
 
 /**
- * Seed idempotente: upsert de vendedores (por e-mail) e oportunidades (por código); itens,
- * histórico e follow-ups dessas oportunidades são recriados do zero. Os follow-ups não são
- * inseridos aqui: o motor recalcula no boot da API.
+ * Seed idempotente: upsert de vendedores (por e-mail) e oportunidades (por código); itens e
+ * histórico dessas oportunidades são recriados do zero. Dos follow-ups, só os ABERTOS são apagados
+ * (o motor recria no boot da API); os encerrados ficam como histórico do trabalho feito.
  */
 export async function executarSeed(prisma: PrismaClient): Promise<ResultadoSeed> {
   const resultado: ResultadoSeed = { vendedores: 0, oportunidades: 0, itens: 0, transicoes: 0 };
@@ -57,7 +57,7 @@ export async function executarSeed(prisma: PrismaClient): Promise<ResultadoSeed>
 
       await tx.itemBrinde.deleteMany({ where: { oportunidadeId: op.id } });
       await tx.transicaoEtapa.deleteMany({ where: { oportunidadeId: op.id } });
-      await tx.followUp.deleteMany({ where: { oportunidadeId: op.id } });
+      await tx.followUp.deleteMany({ where: { oportunidadeId: op.id, status: 'ABERTO' } });
 
       await tx.itemBrinde.create({
         data: {
