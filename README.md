@@ -2,7 +2,9 @@
 
 CRM interno para o time comercial da Nobre Brindes acompanhar oportunidades B2B pelo funil e responder, ao abrir a tela, à pergunta **"o que eu trabalho hoje?"**: quais negociações precisam de atenção antes que a venda seja perdida, em que ordem e qual é a próxima ação de cada uma.
 
-![Kanban com sinais de atenção](docs/img/01-kanban-atencao.png)
+![Arrastando OPP-2004 pelo teclado: Apresentação aceita (pede motivo); Forecast, Fechamento e Primeiro Contato bloqueadas com o motivo](docs/img/00-kanban-arrastar.gif)
+
+*OPP-2004 (proposta vencida) sendo arrastada pelo teclado: só Apresentação de Orçamento (retorno, pede motivo) e Perdida aceitam; Forecast, Fechamento e Primeiro Contato ficam apagadas com o motivo do domínio no cabeçalho.*
 
 ## Índice
 
@@ -331,6 +333,9 @@ Cada mudança de etapa grava exatamente uma linha em `transicoes_etapa` — **qu
 ## 6. Sinais de atenção e priorização
 
 Calculados só para etapas não finais, sempre em relação ao "hoje" (data de referência):
+
+![Kanban com sinais de atenção](docs/img/01-kanban-atencao.png)
+
 
 | Sinal | Condição | Severidade | Peso |
 |---|---|---|---|
