@@ -61,6 +61,8 @@ Os dados do case são de **15/10/2026**. Sinais de atenção e ações de follow
 
 Para usar a data real, remova a linha do `.env` (ou rode `REFERENCE_DATE= docker compose up`): `/health` passa a responder `referenciaFixa: false` e o indicador mostra só a data. Timestamps técnicos (quando uma transição aconteceu, quando uma ação foi encerrada) sempre usam o relógio real.
 
+**Efeito colateral conhecido na demonstração:** com a data de referência no passado, o que é criado pela interface nasce com a data real, *depois* do "hoje" fixo. Uma oportunidade criada em 24/10 sem contato registrado aparece como "Lead sem primeiro contato há -9 dias (SLA)", e o campo "Último contato" não aceita a data real (é "futura" para o sistema). Isso só acontece com `REFERENCE_DATE` ligada; em uso real (data real) as duas datas coincidem. Para explorar a criação de oportunidades sem esse efeito, desligue a data de referência.
+
 ### "Eu sou": identidade sem login
 
 Não há login (fora do escopo; ver seção 10). No topo da interface, o seletor **Eu sou** simula o usuário logado: o vendedor escolhido fica no `localStorage` e vai no header `x-vendedor-id` de toda escrita. É ele que aparece como autor no histórico de etapas e que define de quem é o painel Hoje. Na API, pegue os ids com `GET /vendedores`:
