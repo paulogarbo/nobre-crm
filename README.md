@@ -521,7 +521,7 @@ Domínio: cada regra no limiar e um dia antes (F-02…F-10), precedência (F-11,
 - **Erros sem vazamento:** 500 genérico, sem stack nem mensagem do banco; o detalhe vai para o log com `x-request-id`, gerado sempre pelo servidor (o valor enviado pelo cliente é ignorado, para não permitir forjar a correlação).
 - **Headers e perímetro:** Helmet, CORS restrito a `CORS_ORIGIN`, rate limit de 300 req/min por IP.
 - **Logs:** o Fastify não registra corpo de requisição, então dados de contato não vão para o log.
-- **Containers:** Alpine, usuário não root, só dependências de produção na imagem da API.
+- **Containers:** Alpine, usuário não root. A imagem da API leva só o bundle (`dist/server.js` e `dist/seed.js`), o schema com as migrations e as dependências de produção: sem código-fonte, testes nem `tsx`.
 - **Dependências:** `pnpm audit` sem vulnerabilidades conhecidas (com overrides para `postcss` e `esbuild` transitivos), e o CI falha se aparecer alguma alta ou crítica.
 - **Identidade:** o header `x-vendedor-id` é um **stand-in**: identifica, não autentica. Está isolado no plugin [`identidade.ts`](apps/api/src/plugins/identidade.ts), cuja única responsabilidade é preencher `request.vendedor`. Não implementei um login com senha falso: parece segurança e não é.
 

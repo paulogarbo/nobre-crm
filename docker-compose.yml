@@ -31,7 +31,7 @@ services:
       FOLLOWUP_WEBHOOK_URL: ${FOLLOWUP_WEBHOOK_URL:-}
       LOG_LEVEL: info
       NODE_ENV: production
-    command: sh -c "pnpm prisma migrate deploy && pnpm prisma db seed && pnpm start"
+    command: sh -c "node_modules/.bin/prisma migrate deploy && node dist/seed.js && node dist/server.js"
     ports:
       - '3333:3333'
     depends_on:
