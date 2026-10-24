@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { hasZodFastifySchemaValidationErrors, ResponseSerializationError } from 'fastify-type-provider-zod';
+import { Prisma } from '../generated/prisma/client';
 import { AppError } from '../lib/errors';
 
 export interface CorpoErro {
@@ -9,6 +10,36 @@ export interface CorpoErro {
 }
 
 const LOCAIS: Record<string, string> = { body: 'corpo', querystring: 'query', params: 'parâmetro', headers: 'header' };
+
+/** Erros 4xx do próprio Fastify (parse do corpo) com mensagem em português. */
+const MENSAGENS_FASTIFY: Record<string, string> = {
+  FST_ERR_CTP_INVALID_JSON_BODY: 'O corpo da requisição não é um JSON válido.',
+  FST_ERR_CTP_EMPTY_JSON_BODY: 'O corpo da requisição está vazio, mas o content-type é application/json.',
+  FST_ERR_CTP_BODY_TOO_LARGE: 'O corpo da requisição é grande demais.',
+  FST_ERR_CTP_INVALID_MEDIA_TYPE: 'Tipo de conteúdo não suportado: envie application/json.',
+  FST_ERR_CTP_INVALID_CONTENT_LENGTH: 'O tamanho do corpo não confere com o header Content-Length.',
+};
+
+/**
+ * Erros do Prisma que chegam aqui por corrida (o registro sumiu ou a referência deixou de existir
+ * entre a leitura e a escrita). Os demais seguem como 500.
+ */
+const ERROS_PRISMA: Record<string, CorpoErro & { status: number }> = {
+  P2025: {
+    status: 404,
+    code: 'REGISTRO_NAO_ENCONTRADO',
+    message: 'O registro não existe mais (pode ter sido removido por outra pessoa). Recarregue e tente novamente.',
+  },
+  P2003: {
+    status: 409,
+    code: 'REFERENCIA_INVALIDA',
+    message: 'Um registro relacionado não existe ou foi removido. Recarregue e tente novamente.',
+  },
+};
+
+function erroPrismaConhecido(erro: unknown) {
+  return erro instanceof Prisma.PrismaClientKnownRequestError ? ERROS_PRISMA[erro.code] : undefined;
+}
 
 /**
  * Todas as respostas de erro seguem `{ code, message, details? }`. Nada de stack ou mensagem interna
@@ -45,6 +76,13 @@ export function registrarTratamentoDeErros(app: FastifyInstance) {
       return reply.status(500).send({ code: 'ERRO_INTERNO', message: 'Erro interno. Tente novamente.' });
     }
 
+    const prisma = erroPrismaConhecido(erro);
+    if (prisma) {
+      const { status, ...corpo } = prisma;
+      request.log.warn({ err: erro }, 'conflito com o banco');
+      return reply.status(status).send(corpo satisfies CorpoErro);
+    }
+
     const status = erro.statusCode ?? 500;
     if (status === 429) {
       return reply.status(429).send({
@@ -56,7 +94,7 @@ export function registrarTratamentoDeErros(app: FastifyInstance) {
       // Erros do próprio Fastify (JSON malformado, content-type, payload grande demais...).
       return reply.status(status).send({
         code: status === 400 ? 'VALIDACAO' : 'REQUISICAO_INVALIDA',
-        message: erro.message,
+        message: (erro.code && MENSAGENS_FASTIFY[erro.code]) || 'Requisição inválida.',
       } satisfies CorpoErro);
     }
 
