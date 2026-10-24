@@ -115,20 +115,22 @@ pnpm install
 pnpm test
 ```
 
-`pnpm test` roda o Vitest nos três pacotes. Os testes da API rodam **em sequência** (um arquivo por vez, porque compartilham o banco e cada caso o reinicia com o seed), então essa parte leva cerca de 20 s; domínio e web levam poucos segundos. Os testes de integração da API usam um banco separado, `nobre_crm_test`, **criado automaticamente** no mesmo Postgres pelo `globalSetup` (que também aplica as migrations e se recusa a rodar contra qualquer banco cujo nome não termine em `_test`). A API é exercitada com `app.inject()` do Fastify, sem abrir porta, contra o Postgres real.
+`pnpm test` roda o Vitest nos quatro pacotes. Os testes da API rodam **em sequência** (um arquivo por vez, porque compartilham o banco e cada caso o reinicia com o seed), então essa parte leva cerca de 20 s; domínio e web levam poucos segundos. Os testes de integração da API usam um banco separado, `nobre_crm_test`, **criado automaticamente** no mesmo Postgres pelo `globalSetup` (que também aplica as migrations e se recusa a rodar contra qualquer banco cujo nome não termine em `_test`). A API é exercitada com `app.inject()` do Fastify, sem abrir porta, contra o Postgres real.
 
 | Pacote | O que testa | Testes |
 |---|---|---|
-| `packages/domain` | máquina de estados (D-01…D-35), sinais e score (A-01…A-21), motor de próxima ação (F-01…F-14), datas civis (T-01…T-04). Inclui o seed de 15/10/2026 produzindo exatamente a tabela esperada | 80 |
-| `apps/api` | coerência do seed com as regras; rotas, filtros, validação, erros, transições, histórico, atomicidade (I-01…I-31, I-40, I-41); follow-ups (I-32…I-39), resolução na transição, job no boot e webhook | 64 |
-| `apps/web` | resumo de atenção, badges, estados vazio × sem resultados, leitura de valores | 6 |
+| `packages/domain` | máquina de estados (D-01…D-35), sinais e score (A-01…A-21), motor de próxima ação (F-01…F-14), datas civis (T-01…T-04), limiares de uma única fonte. Inclui o seed de 15/10/2026 produzindo exatamente a tabela esperada | 81 |
+| `packages/contracts` | datas civis, texto vazio → `null`, corpo estrito, PATCH vazio recusado, conversão da query | 4 |
+| `apps/api` | coerência do seed com as regras; rotas, filtros, busca (acentos e curingas), validação, erros, transições, histórico, atomicidade (I-01…I-31, I-40, I-41); toda recusa 422 prova que nada mudou; concorrência otimista (transições simultâneas e PATCH no meio); sequência do código; autoria; follow-ups (I-32…I-39), ordenação e filtros do painel, corrida job × requisição, resolução na transição, job no boot e webhook; tratamento de erros e variáveis de ambiente | 87 |
+| `apps/web` | card (Enter no card × no menu), casca estática do servidor, resumo de atenção, badges, estados, área esmaecida na troca de filtro, contador acessível, ordenação da lista, erros do servidor no formulário | 16 |
 
 Saída de referência (resumida):
 
 ```
-packages/domain test:       Tests  80 passed (80)
-apps/api test:       Tests  64 passed (64)
-apps/web test:       Tests  6 passed (6)
+packages/domain test:       Tests  81 passed (81)
+packages/contracts test:       Tests  4 passed (4)
+apps/web test:       Tests  16 passed (16)
+apps/api test:       Tests  87 passed (87)
 ```
 
 Os IDs dos casos (`D-03`, `I-22`, `F-13`…) estão no texto dos `it(...)`, para localizar rápido a regra testada. Cobertura do domínio: `pnpm --filter domain test:coverage` (≈98% das linhas). `pnpm lint` e `pnpm typecheck` rodam em todos os pacotes; há um workflow de CI em `.github/workflows/ci.yml` que executa `pnpm audit --audit-level high`, lint, typecheck, testes (com serviço Postgres) e build.
@@ -141,7 +143,7 @@ Os IDs dos casos (`D-03`, `I-22`, `F-13`…) estão no texto dos `it(...)`, para
 |---|---|---|
 | **Produto & UX** | Kanban com 6 colunas e drag & drop validado, ordenado por prioridade; resumo "o que precisa de atenção hoje"; busca e filtros na URL; lista em tabela; detalhe com timeline do histórico; formulário de criação/edição; painel Hoje; estados de carregando, erro, vazio e sem resultados | [`apps/web`](apps/web) |
 | **Engenharia** | API REST (Fastify + Prisma + PostgreSQL); todas as regras do funil num pacote de domínio puro, validadas no backend; histórico de transições na mesma transação; erros padronizados; seed determinístico e coerente com as regras | [`packages/domain`](packages/domain), [`apps/api`](apps/api) |
-| **Automação & Qualidade** | Motor de follow-up (uma próxima ação por oportunidade), recálculo idempotente após cada alteração, no boot e por cron, webhook opcional, painel Hoje; 150 testes | [`packages/domain/src/follow-up.ts`](packages/domain/src/follow-up.ts), [`apps/api/src/modules/follow-ups`](apps/api/src/modules/follow-ups) |
+| **Automação & Qualidade** | Motor de follow-up (uma próxima ação por oportunidade), recálculo idempotente após cada alteração, no boot e por cron, webhook opcional, painel Hoje; 188 testes | [`packages/domain/src/follow-up.ts`](packages/domain/src/follow-up.ts), [`apps/api/src/modules/follow-ups`](apps/api/src/modules/follow-ups) |
 
 ---
 
@@ -211,7 +213,7 @@ POST /oportunidades/:id/transicoes  { "para": "FORECAST" }
   → TransicoesService
       → carrega a oportunidade com os itens (404 se não existe)
       → domain.validarTransicao(op, para, motivo, hoje)  → 422 com o código do domínio se inválida
-      → transação: UPDATE da etapa (só se ainda for a etapa validada) + INSERT no histórico
+      → transação: UPDATE da etapa (só se a oportunidade não mudou desde a validação) + INSERT no histórico
       → após o commit: recalcula a próxima ação (follow-up) da oportunidade
   → 200 com a oportunidade detalhada (sinais, transições permitidas, histórico)
 ```
@@ -442,7 +444,7 @@ Precedência: evento > proposta > contato, pelo mesmo motivo dos sinais (seção
 
 **Quando roda:** após cada alteração da oportunidade (criação, edição, transição, contato, conclusão), no **boot** da API (2 s depois do `listen`), **a cada hora** via `node-cron` (`FOLLOWUP_CRON`) e sob demanda (`POST /follow-ups/recalcular`, botão "Recalcular agora"). É **idempotente** (rodar duas vezes seguidas: `criados: 0, substituidos: 0, resolvidos: 0`), protegido contra sobreposição (flag de execução) e não roda nos testes. A invariante **no máximo uma ação aberta por oportunidade** é garantida também no banco por um índice único parcial (`... ON follow_ups (oportunidade_id) WHERE status = 'ABERTO'`).
 
-**Concluir ≠ resolver.** *Concluir* é o vendedor dizendo "fiz": encerra o registro (histórico do trabalho) e, por padrão, registra o contato de hoje; depois o motor decide se ainda há o que fazer. *Resolver* é automático e só acontece quando o gatilho some.
+**Concluir ≠ resolver.** *Concluir* é o vendedor dizendo "fiz": encerra o registro (histórico do trabalho, com quem concluiu) e, por padrão, registra o contato de hoje; depois o motor decide se ainda há o que fazer. *Resolver* é automático e só acontece quando o gatilho some.
 
 ### Integração na interface
 
@@ -534,7 +536,7 @@ Domínio: cada regra no limiar e um dia antes (F-02…F-10), precedência (F-11,
 - **Transporte e perímetro:** TLS obrigatório com HSTS; gateway/WAF (Cloudflare ou ALB + WAF) com rate limit por usuário e por IP; CORS só para o domínio do front; banco em rede privada, sem IP público.
 - **Segredos:** AWS Secrets Manager / GCP Secret Manager / Vault injetando em runtime, com rotação automática da senha do banco e das chaves do JWT (JWKS com `kid`).
 - **Banco:** usuário da aplicação com privilégio mínimo (DML, sem DDL; migrations com outro usuário no deploy); backups diários com PITR; criptografia em repouso; para LGPD, criptografia em nível de coluna ou tokenização de `contatoEmail`, `contatoTelefone` e `cnpj`, e política de retenção.
-- **Auditoria:** o histórico de transições já é auditoria do funil; em produção, estender para toda escrita (quem, quando, o quê, antes/depois, `requestId`, IP) em armazenamento append-only.
+- **Auditoria:** o histórico de transições já é auditoria do funil, e a edição (PATCH) e a conclusão de follow-up guardam o autor; em produção, estender para toda escrita (quem, quando, o quê, antes/depois, `requestId`, IP) em armazenamento append-only.
 - **Hardening:** zod em todas as bordas, `bodyLimit`, timeouts, CSP ajustada ao front, Dependabot/Renovate somado ao `pnpm audit` que o CI já roda, imagens escaneadas (Trivy), containers read-only.
 - **Observabilidade:** logs estruturados centralizados sem PII, métricas (p95, 4xx/5xx, 429), tracing (OpenTelemetry), alertas de anomalia (picos de 401/403 ou de perdas).
 - **Multi-marca:** se o CRM for compartilhado entre Nobre Brindes, Flores Nobre e Coroa de Flores, `marcaId` como dimensão de autorização (tenant lógico), checada no mesmo ponto único.
@@ -568,7 +570,8 @@ O histórico do seed (22 transições) foi construído para ser coerente com as 
 - **Itens substituídos no PATCH:** a lista enviada substitui a anterior; simples e previsível.
 - **Empresa como atributo, não entidade:** suficiente para v1; normalizar quando a mesma empresa tiver várias oportunidades.
 - **Job dentro do processo da API** (`node-cron`): sem worker separado para o volume do case; o índice único parcial e o recálculo idempotente tornam seguro rodar job e requisições ao mesmo tempo.
-- **Concorrência otimista na transição:** o update só acontece se a etapa ainda for a que foi validada; se outra pessoa mudou antes, a requisição é revalidada contra o estado novo.
+- **Concorrência otimista na transição:** o update só acontece se a etapa e o `updatedAt` ainda forem os lidos na validação; se outra pessoa mudou a oportunidade antes (outra transição ou um PATCH que, por exemplo, apagou a validade), a requisição é revalidada contra o estado novo.
+- **Código OPP por SEQUENCE do banco:** atômico entre criações simultâneas; o seed, que grava os códigos do case explicitamente, só avança a sequência, nunca a faz voltar.
 - **Colunas flexíveis no Kanban** (mínimo de 224 px, até 360 px): com a coluna Perdida recolhida, a board inteira cabe a partir de 1280 px; abaixo disso, rolagem horizontal.
 
 ---
