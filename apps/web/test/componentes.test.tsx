@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BadgesAtencao } from '@/components/atencao/BadgeAtencao';
 import { ResumoAtencao } from '@/components/atencao/ResumoAtencao';
 import { AreaAtualizando, SemResultados, Vazio } from '@/components/estados/Estados';
+import { ContadorHoje } from '@/components/layout/Topbar';
 import { errosDoServidorPorCampo, lerValor } from '@/components/oportunidade/FormOportunidade';
 import { TooltipProvider } from '@/components/ui/menu';
 import type { OportunidadeResumo } from '@/lib/api/tipos';
@@ -91,6 +92,19 @@ describe('estados', () => {
     expect(screen.getByText('Nenhuma oportunidade cadastrada.')).toBeTruthy();
     screen.getByRole('button', { name: 'Limpar filtros' }).click();
     expect(limpar).toHaveBeenCalled();
+  });
+});
+
+describe('menu', () => {
+  it('o link Hoje anuncia o número de ações para leitor de tela', () => {
+    render(
+      <a href="/hoje">
+        Hoje <ContadorHoje total={3} ativo={false} />
+      </a>,
+    );
+    expect(screen.getByRole('link').textContent).toContain('3 ações abertas');
+    // o número visível fica fora do nome acessível; o texto completo entra
+    expect(screen.getByRole('link', { name: /^Hoje\s*, 3 ações abertas$/ })).toBeTruthy();
   });
 });
 

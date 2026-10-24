@@ -124,6 +124,27 @@ function Filtros() {
   );
 }
 
+/**
+ * Contador de ações abertas no link "Hoje". `aria-label` num `span` é ignorado pelos leitores de
+ * tela; o número visível fica oculto para eles e o texto completo vai em `sr-only`.
+ */
+export function ContadorHoje({ total, ativo }: { total: number; ativo: boolean }) {
+  return (
+    <>
+      <span
+        aria-hidden
+        className={cn(
+          'rounded-full px-1.5 text-[11px] font-semibold',
+          ativo ? 'bg-white text-slate-900' : total > 0 ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700',
+        )}
+      >
+        {total}
+      </span>
+      <span className="sr-only">, {total === 1 ? '1 ação aberta' : `${total} ações abertas`}</span>
+    </>
+  );
+}
+
 function LinkNav({ href, ativo, children }: { href: string; ativo: boolean; children: React.ReactNode }) {
   return (
     <Link
@@ -164,17 +185,7 @@ export function Topbar() {
             </LinkNav>
             <LinkNav href="/hoje" ativo={pathname === '/hoje'}>
               <ListTodo aria-hidden /> Hoje
-              {totalHoje !== undefined && (
-                <span
-                  className={cn(
-                    'rounded-full px-1.5 text-[11px] font-semibold',
-                    pathname === '/hoje' ? 'bg-white text-slate-900' : totalHoje > 0 ? 'bg-red-600 text-white' : 'bg-slate-200 text-slate-700',
-                  )}
-                  aria-label={`${totalHoje} ações abertas`}
-                >
-                  {totalHoje}
-                </span>
-              )}
+              {totalHoje !== undefined && <ContadorHoje total={totalHoje} ativo={pathname === '/hoje'} />}
             </LinkNav>
           </nav>
           {comFiltros && <Busca />}
