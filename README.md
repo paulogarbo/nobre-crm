@@ -338,6 +338,15 @@ Calculados só para etapas não finais, sempre em relação ao "hoje" (data de r
 
 Ordem resultante: **2003 > 2002 > 2004 > 2001 > 2005 > 2006 > 2007**. Os limiares (2, 8, 3 e 7 dias) são constantes nomeadas (`LIMIARES` em [`atencao.ts`](packages/domain/src/atencao.ts)); o próximo passo é torná-los configuráveis pelo gestor.
 
+**Por que esses limiares:**
+
+- **2 dias para o lead:** um lead que espera dois dias pelo primeiro contato esfria e costuma cotar com o concorrente; é um SLA, não uma média.
+- **8 dias sem contato nas demais etapas:** uma semana inteira mais um dia de folga. Uma negociação em andamento costuma ter um toque por semana; passar disso é sinal de que ela parou.
+- **Evento em 3 e 7 dias:** brinde personalizado tem prazo de produção e entrega. Com 7 dias ainda dá para produzir se fechar agora (alta); com 3 dias, só com urgência ou item de pronta entrega (crítica).
+- **Proposta vence em 3 dias:** tempo para renegociar a validade com o cliente antes que ela expire, e não depois.
+
+**Por que a precedência evento > proposta > contato:** o evento é um prazo físico que não se renegocia (passou, a venda acabou); a proposta vencida é perda de preço e de condição, que ainda se revisa; falta de contato é sintoma, e resolver qualquer uma das duas primeiras já exige contato.
+
 ---
 
 ## 7. UX: como o vendedor encontra o que trabalhar hoje
@@ -386,7 +395,7 @@ Para cada oportunidade não final, o motor ([`proximaAcao`](packages/domain/src/
 | 9 | Follow-up sem contato há 6–7 dias | Retomar negociação | Média |
 | 10 | Forecast sem contato há ≥ 8 dias | Confirmar fechamento | Alta |
 
-Precedência: evento > proposta > contato. Os sinais de atenção descrevem o **estado**; a ação prescreve **o que fazer**, com os mesmos limiares. As regras 7 e 9 são antecipações (ainda não há sinal, mas já há ação preventiva); fora delas, um teste garante que toda ação tem um sinal correspondente.
+Precedência: evento > proposta > contato, pelo mesmo motivo dos sinais (seção 6): prazo físico antes de condição comercial, e as duas antes do sintoma. Os sinais de atenção descrevem o **estado**; a ação prescreve **o que fazer**, com os mesmos limiares. As regras 7 e 9 são antecipações (ainda não há sinal, mas já há ação preventiva); fora delas, um teste garante que toda ação tem um sinal correspondente.
 
 **Recálculo** ([`follow-ups.service.ts`](apps/api/src/modules/follow-ups/follow-ups.service.ts)), por oportunidade e numa transação:
 
