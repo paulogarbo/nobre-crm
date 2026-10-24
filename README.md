@@ -1,5 +1,7 @@
 # Nobre CRM — funil comercial da Nobre Brindes
 
+[![CI](https://github.com/paulogarbo/nobre-crm/actions/workflows/ci.yml/badge.svg)](https://github.com/paulogarbo/nobre-crm/actions/workflows/ci.yml)
+
 CRM interno para o time comercial da Nobre Brindes acompanhar oportunidades B2B pelo funil e responder, ao abrir a tela, à pergunta **"o que eu trabalho hoje?"**: quais negociações precisam de atenção antes que a venda seja perdida, em que ordem e qual é a próxima ação de cada uma.
 
 ![Arrastando OPP-2004 pelo teclado: Apresentação aceita (pede motivo); Forecast, Fechamento e Primeiro Contato bloqueadas com o motivo](docs/img/00-kanban-arrastar.gif)
@@ -31,7 +33,7 @@ CRM interno para o time comercial da Nobre Brindes acompanhar oportunidades B2B 
 Pré-requisito: Docker com Docker Compose.
 
 ```bash
-git clone <url-do-repositório> nobre-crm && cd nobre-crm
+git clone https://github.com/paulogarbo/nobre-crm.git nobre-crm && cd nobre-crm
 cp .env.example .env
 docker compose up --build
 # Web:  http://localhost:3000
