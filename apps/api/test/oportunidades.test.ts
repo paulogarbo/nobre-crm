@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import type { PrismaClient } from '../src/lib/prisma';
+import { TransicoesService } from '../src/modules/transicoes/transicoes.service';
 import { chamar, criarContexto, resetarComSeed, zerarBanco, type Contexto, type Vendedores } from './helpers';
 
 let ctx: Contexto;
@@ -442,6 +444,59 @@ describe('transições de etapa', () => {
     expect((await transicionar('OPP-9999', v.Ana, { para: 'FORECAST' })).status).toBe(404);
     const semIdentidade = await chamar(ctx.app, 'POST', '/oportunidades/OPP-2003/transicoes', { body: { para: 'FORECAST' } });
     expect(semIdentidade.status).toBe(401);
+  });
+
+  it('concorrência: duas transições simultâneas, exatamente uma é aplicada', async () => {
+    const [fechar, perder] = await Promise.all([
+      transicionar('OPP-2005', v.Bruno, { para: 'FECHAMENTO' }),
+      transicionar('OPP-2005', v.Carla, { para: 'PERDIDA', motivo: 'Cliente cancelou o evento.' }),
+    ]);
+    const statuses = [fechar.status, perder.status];
+    expect(statuses.filter((s) => s === 200)).toHaveLength(1);
+    const recusada = fechar.status === 200 ? perder : fechar;
+    expect([409, 422]).toContain(recusada.status);
+    expect(['ETAPA_FINAL', 'OPORTUNIDADE_ALTERADA']).toContain(recusada.body.code);
+    const vencedora = fechar.status === 200 ? 'FECHAMENTO' : 'PERDIDA';
+    await esperarInalterada('OPP-2005', vencedora, 5);
+  });
+
+  /** Serviço de transições cujo prisma executa `antes(n)` imediatamente antes da n-ésima transação. */
+  function transicoesComInterferencia(antes: (n: number) => Promise<unknown>) {
+    let n = 0;
+    const prisma = new Proxy(ctx.prisma, {
+      get(alvo, nome) {
+        if (nome === '$transaction') {
+          return async (fn: Parameters<PrismaClient['$transaction']>[0]) => {
+            await antes(++n);
+            return alvo.$transaction(fn);
+          };
+        }
+        const valor = Reflect.get(alvo, nome) as unknown;
+        return typeof valor === 'function' ? valor.bind(alvo) : valor;
+      },
+    }) as PrismaClient;
+    return new TransicoesService(prisma, ctx.app.servicos.relogio, async () => {});
+  }
+
+  const executor = () => ({ id: v.Bruno, nome: 'Bruno' });
+  const mudarEtapa = (etapa: 'PERDIDA' | 'FOLLOW_UP' | 'APRESENTACAO_ORCAMENTO') =>
+    ctx.prisma.oportunidade.update({ where: { codigo: 'OPP-2005' }, data: { etapa } });
+
+  it('concorrência: etapa mudou entre a validação e a escrita → revalida contra o estado novo', async () => {
+    const servico = transicoesComInterferencia(async (n) => n === 1 && mudarEtapa('PERDIDA'));
+    await expect(servico.transicionar('OPP-2005', 'FECHAMENTO' as never, null, executor())).rejects.toMatchObject({
+      statusCode: 422,
+      code: 'ETAPA_FINAL',
+    });
+    await esperarInalterada('OPP-2005', 'PERDIDA', 4);
+  });
+
+  it('concorrência: etapa mudou de novo na segunda tentativa → 409 OPORTUNIDADE_ALTERADA', async () => {
+    const servico = transicoesComInterferencia((n) => mudarEtapa(n === 1 ? 'FOLLOW_UP' : 'APRESENTACAO_ORCAMENTO'));
+    await expect(
+      servico.transicionar('OPP-2005', 'PERDIDA' as never, 'Cliente desistiu da compra.', executor()),
+    ).rejects.toMatchObject({ statusCode: 409, code: 'OPORTUNIDADE_ALTERADA' });
+    await esperarInalterada('OPP-2005', 'APRESENTACAO_ORCAMENTO', 4);
   });
 
   it('I-30 atomicidade: falha ao gravar o histórico desfaz a mudança de etapa', async () => {
