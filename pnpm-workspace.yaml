@@ -1,3 +1,11 @@
 packages:
   - apps/*
   - packages/*
+
+# Dependências autorizadas a rodar scripts de instalação (pnpm bloqueia por padrão).
+allowBuilds:
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true

@@ -1,0 +1,134 @@
+// Contrato do banco. Datas de negócio são datas civis (@db.Date); timestamps são UTC.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Etapa {
+  PRIMEIRO_CONTATO
+  APRESENTACAO_ORCAMENTO
+  FOLLOW_UP
+  FORECAST
+  FECHAMENTO
+  PERDIDA
+}
+
+enum TipoFollowUp {
+  PRIMEIRO_CONTATO_SLA
+  CONFIRMAR_PRAZO_EVENTO
+  REVISAR_PROPOSTA_VENCIDA
+  RENEGOCIAR_VALIDADE
+  CONFIRMAR_RECEBIMENTO_PROPOSTA
+  RETOMAR_NEGOCIACAO
+  CONFIRMAR_FECHAMENTO
+}
+
+enum PrioridadeFollowUp {
+  CRITICA
+  ALTA
+  MEDIA
+}
+
+enum StatusFollowUp {
+  ABERTO
+  CONCLUIDO // vendedor marcou como feito
+  RESOLVIDO // gatilho desapareceu (contato registrado, etapa mudou) e o motor fechou sozinho
+  SUBSTITUIDO // o motor trocou por uma ação mais urgente
+}
+
+model Vendedor {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  oportunidades Oportunidade[]
+  transicoes    TransicaoEtapa[]
+
+  @@map("vendedores")
+}
+
+model Oportunidade {
+  id               String    @id @default(uuid())
+  codigo           String    @unique // OPP-2001
+  empresa          String
+  cnpj             String?
+  contatoNome      String?   @map("contato_nome")
+  contatoEmail     String?   @map("contato_email")
+  contatoTelefone  String?   @map("contato_telefone")
+  vendedorId       String    @map("vendedor_id")
+  etapa            Etapa     @default(PRIMEIRO_CONTATO)
+  valorEstimado    Decimal?  @map("valor_estimado") @db.Decimal(12, 2)
+  ultimoContato    DateTime? @map("ultimo_contato") @db.Date
+  validadeProposta DateTime? @map("validade_proposta") @db.Date
+  eventoCliente    DateTime? @map("evento_cliente") @db.Date
+  motivoPerda      String?   @map("motivo_perda")
+  observacoes      String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  vendedor   Vendedor         @relation(fields: [vendedorId], references: [id])
+  itens      ItemBrinde[]
+  transicoes TransicaoEtapa[]
+  followUps  FollowUp[]
+
+  @@index([etapa])
+  @@index([vendedorId])
+  @@index([validadeProposta])
+  @@index([eventoCliente])
+  @@map("oportunidades")
+}
+
+model ItemBrinde {
+  id             String   @id @default(uuid())
+  oportunidadeId String   @map("oportunidade_id")
+  descricao      String
+  quantidade     Int
+  valorUnitario  Decimal? @map("valor_unitario") @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+
+  @@index([oportunidadeId])
+  @@map("itens_brinde")
+}
+
+model TransicaoEtapa {
+  id             String   @id @default(uuid())
+  oportunidadeId String   @map("oportunidade_id")
+  deEtapa        Etapa?   @map("de_etapa") // null na criação
+  paraEtapa      Etapa    @map("para_etapa")
+  motivo         String?
+  vendedorId     String   @map("vendedor_id") // quem executou (não necessariamente o dono)
+  createdAt      DateTime @default(now()) @map("created_at") // "quando"
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+  vendedor     Vendedor     @relation(fields: [vendedorId], references: [id])
+
+  @@index([oportunidadeId, createdAt])
+  @@map("transicoes_etapa")
+}
+
+model FollowUp {
+  id             String             @id @default(uuid())
+  oportunidadeId String             @map("oportunidade_id")
+  tipo           TipoFollowUp
+  prioridade     PrioridadeFollowUp
+  titulo         String
+  descricao      String
+  venceEm        DateTime           @map("vence_em") @db.Date
+  status         StatusFollowUp     @default(ABERTO)
+  criadoEm       DateTime           @default(now()) @map("criado_em")
+  encerradoEm    DateTime?          @map("encerrado_em")
+
+  oportunidade Oportunidade @relation(fields: [oportunidadeId], references: [id], onDelete: Cascade)
+
+  @@index([oportunidadeId, status])
+  @@index([status, venceEm])
+  @@map("follow_ups")
+}

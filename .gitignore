@@ -27,3 +27,6 @@ Thumbs.db
 # editores
 .vscode/
 .idea/
+
+# código gerado pelo Prisma (prisma generate)
+apps/api/src/generated/

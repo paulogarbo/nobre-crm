@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["src", "prisma", "test", "prisma.config.ts", "vitest.config.ts", "tsup.config.ts"]
+}
