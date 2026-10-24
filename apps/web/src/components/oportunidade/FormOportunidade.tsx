@@ -143,6 +143,32 @@ function paraCorpo(v: Valores): CorpoOportunidade {
 
 type Erros = Record<string, string>;
 
+/** Campos com mensagem de erro na tela (os de item ficam em `itens.<chave>.<campo>`). */
+const CAMPOS_COM_ERRO = new Set([
+  'empresa', 'vendedorId', 'valorEstimado', 'ultimoContato', 'validadeProposta', 'eventoCliente',
+  'cnpj', 'contatoNome', 'contatoEmail', 'contatoTelefone', 'observacoes',
+]);
+const CAMPOS_DE_ITEM = new Set(['descricao', 'quantidade', 'valorUnitario']);
+
+/**
+ * Erros de validação do servidor → chaves do formulário. O servidor aponta itens pela posição
+ * (`itens.0.quantidade`); a tela, pela chave estável do item (`itens.item-3.quantidade`). Só entram
+ * campos que têm onde aparecer; se nenhum casar, devolve null (o chamador mostra um aviso geral).
+ */
+export function errosDoServidorPorCampo(
+  issues: Array<{ campo: string; mensagem: string }>,
+  itens: Array<{ chave: string }>,
+): Erros | null {
+  const erros: Erros = {};
+  for (const { campo, mensagem } of issues) {
+    const item = /^itens\.(\d+)\.(\w+)$/.exec(campo);
+    const chave = item ? itens[Number(item[1])]?.chave : undefined;
+    if (item && chave && CAMPOS_DE_ITEM.has(item[2]!)) erros[`itens.${chave}.${item[2]}`] ??= mensagem;
+    else if (CAMPOS_COM_ERRO.has(campo)) erros[campo] ??= mensagem;
+  }
+  return Object.keys(erros).length > 0 ? erros : null;
+}
+
 function CampoForm({
   id,
   rotulo,
@@ -215,11 +241,10 @@ export function FormOportunidade({
   }
 
   function errosDoServidor(erro: unknown) {
-    if (erro instanceof ApiError && erro.code === 'VALIDACAO') {
+    if (erro instanceof ApiError && erro.code === 'VALIDACAO' && valores) {
       const issues = (erro.details as { issues?: Array<{ campo: string; mensagem: string }> } | undefined)?.issues ?? [];
-      const mapeados: Erros = {};
-      for (const i of issues) if (i.campo) mapeados[i.campo] = i.mensagem;
-      if (Object.keys(mapeados).length > 0) {
+      const mapeados = errosDoServidorPorCampo(issues, valores.itens);
+      if (mapeados) {
         setErros(mapeados);
         return;
       }
@@ -435,14 +460,20 @@ export function FormOportunidade({
                         <p className="mt-1 text-xs text-red-600">{erroDe(`itens.${item.chave}.quantidade`)}</p>
                       )}
                     </div>
-                    <Input
-                      aria-label={`Valor unitário do item ${n + 1}`}
-                      placeholder="Valor un. (opc.)"
-                      inputMode="decimal"
-                      value={item.valorUnitario}
-                      disabled={enviando}
-                      onChange={(e) => atualizarItem(item.chave, 'valorUnitario', e.target.value.replace(/[^\d.,]/g, ''))}
-                    />
+                    <div>
+                      <Input
+                        aria-label={`Valor unitário do item ${n + 1}`}
+                        placeholder="Valor un. (opc.)"
+                        inputMode="decimal"
+                        value={item.valorUnitario}
+                        disabled={enviando}
+                        aria-invalid={Boolean(erroDe(`itens.${item.chave}.valorUnitario`))}
+                        onChange={(e) => atualizarItem(item.chave, 'valorUnitario', e.target.value.replace(/[^\d.,]/g, ''))}
+                      />
+                      {erroDe(`itens.${item.chave}.valorUnitario`) && (
+                        <p className="mt-1 text-xs text-red-600">{erroDe(`itens.${item.chave}.valorUnitario`)}</p>
+                      )}
+                    </div>
                     <Button
                       variant="ghost"
                       size="icon"

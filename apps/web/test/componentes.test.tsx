@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BadgesAtencao } from '@/components/atencao/BadgeAtencao';
 import { ResumoAtencao } from '@/components/atencao/ResumoAtencao';
 import { SemResultados, Vazio } from '@/components/estados/Estados';
-import { lerValor } from '@/components/oportunidade/FormOportunidade';
+import { errosDoServidorPorCampo, lerValor } from '@/components/oportunidade/FormOportunidade';
 import { TooltipProvider } from '@/components/ui/menu';
 import type { OportunidadeResumo } from '@/lib/api/tipos';
 import { rotuloCurtoSinal } from '@/lib/apresentacao';
@@ -101,5 +101,29 @@ describe('formulário', () => {
     expect(lerValor('18,5')).toBe(18.5);
     expect(lerValor('')).toBeNull();
     expect(lerValor('abc')).toBeNaN();
+  });
+
+  it('erros do servidor por posição do item viram erros na chave do item', () => {
+    const itens = [{ chave: 'item-7' }, { chave: 'item-9' }];
+    expect(
+      errosDoServidorPorCampo(
+        [
+          { campo: 'itens.1.quantidade', mensagem: 'deve ser maior que 0' },
+          { campo: 'empresa', mensagem: 'muito curto' },
+          { campo: 'itens.0.valorUnitario', mensagem: 'inválido' },
+        ],
+        itens,
+      ),
+    ).toEqual({
+      'itens.item-9.quantidade': 'deve ser maior que 0',
+      empresa: 'muito curto',
+      'itens.item-7.valorUnitario': 'inválido',
+    });
+  });
+
+  it('erro do servidor sem campo na tela devolve null (o formulário mostra um aviso geral)', () => {
+    expect(errosDoServidorPorCampo([{ campo: 'itens.5.quantidade', mensagem: 'x' }], [{ chave: 'item-1' }])).toBeNull();
+    expect(errosDoServidorPorCampo([{ campo: '', mensagem: 'corpo vazio' }], [])).toBeNull();
+    expect(errosDoServidorPorCampo([{ campo: 'etapa', mensagem: 'desconhecido' }], [])).toBeNull();
   });
 });
