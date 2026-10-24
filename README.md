@@ -78,10 +78,12 @@ docker compose up -d postgres
 pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-pnpm db:migrate        # aplica as migrations no banco nobre_crm
+pnpm db:migrate        # prisma migrate dev: aplica as migrations no banco nobre_crm
 pnpm db:seed
 pnpm dev               # API em :3333 (com o job) e web em :3000
 ```
+
+`pnpm db:migrate` é o `prisma migrate dev`, comando de desenvolvimento: além de aplicar as migrations, ele gera uma nova se o `schema.prisma` tiver mudado e pode pedir para recriar o banco se detectar divergência. Para só aplicar as existentes (como faz o container da API), use `pnpm --filter api exec prisma migrate deploy`.
 
 ### Variáveis de ambiente
 
@@ -109,7 +111,7 @@ pnpm install
 pnpm test
 ```
 
-`pnpm test` roda o Vitest nos três pacotes. Os testes de integração da API usam um banco separado, `nobre_crm_test`, **criado automaticamente** no mesmo Postgres pelo `globalSetup` (que também aplica as migrations e se recusa a rodar contra qualquer banco cujo nome não termine em `_test`). A API é exercitada com `app.inject()` do Fastify, sem abrir porta, contra o Postgres real.
+`pnpm test` roda o Vitest nos três pacotes. Os testes da API rodam **em sequência** (um arquivo por vez, porque compartilham o banco e cada caso o reinicia com o seed), então essa parte leva cerca de 20 s; domínio e web levam poucos segundos. Os testes de integração da API usam um banco separado, `nobre_crm_test`, **criado automaticamente** no mesmo Postgres pelo `globalSetup` (que também aplica as migrations e se recusa a rodar contra qualquer banco cujo nome não termine em `_test`). A API é exercitada com `app.inject()` do Fastify, sem abrir porta, contra o Postgres real.
 
 | Pacote | O que testa | Testes |
 |---|---|---|
