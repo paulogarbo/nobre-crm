@@ -30,6 +30,11 @@ export interface FiltrosBanco {
 
 const CODIGO = /^OPP-\d+$/i;
 
+/** Escapa os curingas do LIKE (`%`, `_`) e o próprio escape (`\`), para buscar o texto literal. */
+export function escaparLike(texto: string): string {
+  return texto.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /** Aceita uuid ou código legível (OPP-2001). */
 export function ondeIdOuCodigo(idOuCodigo: string): Prisma.OportunidadeWhereUniqueInput {
   return CODIGO.test(idOuCodigo) ? { codigo: idOuCodigo.toUpperCase() } : { id: idOuCodigo };
@@ -41,8 +46,9 @@ export const oportunidadesRepository = {
   listar(prisma: Cliente, f: FiltrosBanco) {
     const and: Prisma.OportunidadeWhereInput[] = [];
     if (f.q) {
-      // Parametrizado pelo Prisma (ILIKE). Sem `unaccent`: "clinica" não encontra "Clínica" (limitação declarada).
-      const contem = { contains: f.q, mode: 'insensitive' } as const;
+      // Parametrizado pelo Prisma (ILIKE). O Prisma não escapa os curingas do LIKE: "%" e "_" digitados
+      // pelo vendedor são literais. Sem `unaccent`: "clinica" não encontra "Clínica" (limitação declarada).
+      const contem = { contains: escaparLike(f.q), mode: 'insensitive' } as const;
       and.push({ OR: [{ codigo: contem }, { empresa: contem }, { itens: { some: { descricao: contem } } }] });
     }
     if (f.etapas?.length) and.push({ etapa: { in: f.etapas } });

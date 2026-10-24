@@ -110,6 +110,19 @@ describe('listagem e busca', () => {
     expect(codigos(await get('/oportunidades?q=clinica'))).toEqual([]);
   });
 
+  it('busca trata %, _ e \\ como texto literal, não como curinga do LIKE', async () => {
+    const empresaComBarra = 'Café_Bar\\Sul';
+    await chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa: 'Loja 100% Brindes' }, vendedorId: v.Ana });
+    await chamar(ctx.app, 'POST', '/oportunidades', { body: { empresa: empresaComBarra }, vendedorId: v.Ana });
+    const buscar = async (q: string) =>
+      (await get(`/oportunidades?q=${encodeURIComponent(q)}`)).body.itens.map((i: any) => i.empresa);
+    expect(await buscar('%')).toEqual(['Loja 100% Brindes']);
+    expect(await buscar('100%')).toEqual(['Loja 100% Brindes']);
+    expect(await buscar('_')).toEqual([empresaComBarra]);
+    expect(await buscar('\\')).toEqual([empresaComBarra]);
+    expect(await buscar('Cl_nica')).toEqual([]);
+  });
+
   it('I-06 filtro por etapa (inclusive lista separada por vírgula)', async () => {
     expect(codigos(await get('/oportunidades?etapa=FOLLOW_UP'))).toEqual(['OPP-2003', 'OPP-2004']);
     expect((await get('/oportunidades?etapa=FORECAST,FECHAMENTO')).body.total).toBe(2);
