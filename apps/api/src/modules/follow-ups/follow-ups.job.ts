@@ -19,7 +19,7 @@ export function iniciarJobFollowUps({ servico, log, expressao, webhookUrl, atras
   if (!cron.validate(expressao)) throw new Error(`FOLLOWUP_CRON inválida: "${expressao}"`);
   let emExecucao = false;
 
-  async function executar(origem: 'boot' | 'cron') {
+  async function executar(origem: 'boot' | 'cron'): Promise<void> {
     if (emExecucao) {
       log.warn({ origem }, 'job de follow-up ainda em execução; disparo ignorado');
       return;
@@ -28,7 +28,8 @@ export function iniciarJobFollowUps({ servico, log, expressao, webhookUrl, atras
     try {
       const { novas, ...resumo } = await servico.recalcularTodos();
       log.info({ origem, ...resumo }, 'job de follow-up: recálculo concluído');
-      if (webhookUrl && resumo.criados + resumo.substituidos > 0) notificar(webhookUrl, { ...resumo, novas }, log);
+      // Aguarda o envio (no máximo 5 s, nunca lança): só segura a próxima execução do job, não as requisições.
+      if (webhookUrl && resumo.criados + resumo.substituidos > 0) await notificar(webhookUrl, { ...resumo, novas }, log);
     } catch (erro) {
       // Falha do job nunca derruba a API: fica no log e a próxima execução tenta de novo.
       log.error({ err: erro, origem }, 'job de follow-up falhou');
@@ -37,12 +38,17 @@ export function iniciarJobFollowUps({ servico, log, expressao, webhookUrl, atras
     }
   }
 
-  const timer = setTimeout(() => void executar('boot'), atrasoInicialMs);
+  let timer: NodeJS.Timeout | undefined;
+  /** Resolve quando a execução do boot termina (inclusive o webhook); usado pelos testes. */
+  const primeiraExecucao = new Promise<void>((resolver) => {
+    timer = setTimeout(() => resolver(executar('boot')), atrasoInicialMs);
+  });
   const tarefa = cron.schedule(expressao, () => void executar('cron'));
   log.info({ expressao }, 'job de follow-up agendado');
 
   return {
     executar,
+    primeiraExecucao,
     parar() {
       clearTimeout(timer);
       void tarefa.stop();
@@ -50,18 +56,18 @@ export function iniciarJobFollowUps({ servico, log, expressao, webhookUrl, atras
   };
 }
 
-/** Envia o resumo para um webhook (Slack, Teams, n8n...). Fire-and-forget com timeout de 5s. */
-function notificar(
+/** Envia o resumo para um webhook (n8n/Make ou endpoint próprio). Timeout de 5 s; falha só vai para o log. */
+async function notificar(
   url: string,
   r: { hoje: string; criados: number; substituidos: number; resolvidos: number; novas: AcaoNova[] },
   log: FastifyBaseLogger,
-) {
+): Promise<void> {
   const corpo = {
     hoje: r.hoje,
     resumo: { criados: r.criados, substituidos: r.substituidos, resolvidos: r.resolvidos },
     acoes: r.novas,
   };
-  fetch(url, {
+  await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(corpo),

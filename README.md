@@ -443,7 +443,7 @@ O ciclo mostra que a automação entende o problema, não só datas:
 
 ### Notificação (webhook opcional)
 
-Com `FOLLOWUP_WEBHOOK_URL` definida, sempre que o job cria ou substitui ações ele envia um `POST` JSON (timeout de 5 s, sem bloquear nada; falha só vai para o log). O payload abaixo é o formato próprio do CRM: **Slack e Teams não o aceitam direto** (os webhooks de entrada deles esperam `{ "text": ... }` ou cards). Para notificar nesses canais, aponte a URL para um fluxo do n8n/Make, que transforma o JSON na mensagem do canal, ou para um endpoint próprio:
+Com `FOLLOWUP_WEBHOOK_URL` definida, sempre que o job cria ou substitui ações ele envia um `POST` JSON (timeout de 5 s, sem bloquear as requisições da API; falha só vai para o log). O payload abaixo é o formato próprio do CRM: **Slack e Teams não o aceitam direto** (os webhooks de entrada deles esperam `{ "text": ... }` ou cards). Para notificar nesses canais, aponte a URL para um fluxo do n8n/Make, que transforma o JSON na mensagem do canal, ou para um endpoint próprio:
 
 ```json
 { "hoje": "2026-10-15", "resumo": { "criados": 3, "substituidos": 0, "resolvidos": 0 },

@@ -352,7 +352,7 @@ describe('job agendado', () => {
       webhookUrl: `http://127.0.0.1:${porta}/webhook`,
       atrasoInicialMs: 10,
     });
-    await new Promise((ok) => setTimeout(ok, 1500));
+    await job.primeiraExecucao;
     job.parar();
     servidor.close();
 
