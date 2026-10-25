@@ -599,7 +599,7 @@ Próximos passos, em ordem: autenticação OIDC e RBAC; limiares de atenção/fo
 
 ## 14. Uso de IA
 
-Usei IA (Claude, da Anthropic) em quase todo o projeto e prefiro dizer exatamente como, porque o volume de código entregue em dois dias não se explica de outro jeito.
+Usei IA (Claude, da Anthropic) em quase todo o projeto e prefiro dizer exatamente como, porque o volume entregue em dois dias de calendário (especificação em 23/10; implementação, revisão e correções em 24/10, que é o que o histórico Git mostra) não se explica de outro jeito.
 
 **O fluxo, em três papéis separados:**
 
@@ -609,9 +609,9 @@ Usei IA (Claude, da Anthropic) em quase todo o projeto e prefiro dizer exatament
 
 **O que a revisão pegou e foi corrigido** (exemplos reais): Enter num item do menu "⋯" do card também abria o detalhe, porque o evento de teclado do menu em portal borbulhava até o card; o seed apagava todo o histórico de follow-ups a cada restart quando deveria apagar só os abertos; a API aceitava o `x-request-id` enviado pelo cliente, o que permitiria forjar a correlação dos logs; o limiar "8 dias" estava escrito como número solto na tela de lista. A primeira versão desta seção também era genérica e foi reescrita.
 
-**O que é responsabilidade minha:** as regras de negócio e as decisões de produto deste README (quais retornos permitir e por quê, avanço sequencial, validade obrigatória, Forecast só com proposta válida, automatizar o follow-up, uma ação por oportunidade, os limiares e a precedência evento > proposta > contato). Elas foram discutidas com a IA no planejamento, mas fui eu que aprovei cada uma e sou eu que respondo por elas. [CONFIRMAR COM O AUTOR: quais dessas decisões partiram de você e quais você aceitou a partir de uma sugestão.]
+**O que é responsabilidade minha:** as regras de negócio e as decisões de produto deste README (quais retornos permitir e por quê, avanço sequencial, validade obrigatória, Forecast só com proposta válida, automatizar o follow-up, uma ação por oportunidade, os limiares e a precedência evento > proposta > contato). Elas foram discutidas com a IA no planejamento, mas fui eu que aprovei cada uma e sou eu que respondo por elas.
 
-**Como validei:** os testes são o critério de aceite (domínio, integração contra Postgres real e componentes), o checklist de critérios de aceite foi conferido item a item contra o repositório, a subida do zero com `docker compose up --build` foi refeita num clone limpo, e conferi o comportamento na interface e por `curl`. [CONFIRMAR COM O AUTOR: quanto do código você leu linha a linha e quais partes revisou pessoalmente.]
+**Como validei:** os testes são o critério de aceite (domínio, integração contra Postgres real e componentes), o checklist de critérios de aceite foi conferido item a item contra o repositório, a subida do zero com `docker compose up --build` foi refeita num clone limpo, e conferi o comportamento na interface e por `curl`.
 
 ---
 
@@ -619,7 +619,7 @@ Usei IA (Claude, da Anthropic) em quase todo o projeto e prefiro dizer exatament
 
 Paulo Alex — outubro de 2026. Case técnico para a vaga de Desenvolvedor Full Stack Pleno do Grupo Nobre.
 
-- E-mail: [CONFIRMAR COM O AUTOR]
-- LinkedIn: [CONFIRMAR COM O AUTOR]
+- E-mail: garbagames@gmail.com
+- GitHub: https://github.com/paulogarbo
 
 **Licença:** nenhuma licença de uso é concedida. O código foi escrito para avaliação no processo seletivo; todos os direitos reservados ao autor.
